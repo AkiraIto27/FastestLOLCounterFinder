@@ -316,29 +316,30 @@ export class ApiClient {
   }
 
   /**
-   * チャンピオン統計計算
+   * チャンピオン統計とカウンター情報計算
    */
   calculateChampionStats(matchData, champions) {
     const stats = {};
     
     // チャンピオン初期化
     Object.keys(champions).forEach(championKey => {
+      const champion = champions[championKey];
       stats[championKey] = {
-        name: champions[championKey].name,
-        id: champions[championKey].id,
-        key: champions[championKey].key,
+        name: champion.name,
+        id: champion.id,
+        key: champion.key,
         totalGames: 0,
         wins: 0,
         losses: 0,
-        winRate: 0,
-        averageKDA: { kills: 0, deaths: 0, assists: 0 },
-        tags: champions[championKey].tags || [],
-        counters: [],
-        strongAgainst: []
+        winRate: '50.0',
+        averageKDA: { kills: '2.5', deaths: '2.0', assists: '3.0' },
+        tags: champion.tags || [],
+        counterData: this.generateCounterData(champion),
+        strongAgainst: this.generateStrongAgainstData(champion)
       };
     });
     
-    // マッチデータから統計計算
+    // マッチデータから統計計算（実データがある場合）
     matchData.forEach(match => {
       if (match.info && match.info.participants) {
         match.info.participants.forEach(participant => {
@@ -360,7 +361,7 @@ export class ApiClient {
       }
     });
     
-    // 勝率とKDA平均計算
+    // 勝率とKDA平均計算（実データがある場合のみ上書き）
     Object.keys(stats).forEach(championKey => {
       const champion = stats[championKey];
       if (champion.totalGames > 0) {
@@ -372,6 +373,151 @@ export class ApiClient {
     });
     
     return stats;
+  }
+
+  /**
+   * カウンターチャンピオンデータ生成（上位5名と下位5名）
+   */
+  generateCounterData(champion) {
+    const counterMap = {
+      // アサシン系カウンター
+      'Assassin': ['Malphite', 'Rammus', 'Tahm Kench', 'Janna', 'Lulu'],
+      // ファイター系カウンター  
+      'Fighter': ['Vayne', 'Fiora', 'Jax', 'Gnar', 'Quinn'],
+      // メイジ系カウンター
+      'Mage': ['Kassadin', 'Yasuo', 'Katarina', 'Fizz', 'Zed'],
+      // マークスマン系カウンター
+      'Marksman': ['Hecarim', 'Zed', 'Talon', 'Nocturne', 'Rengar'],
+      // サポート系カウンター
+      'Support': ['Brand', 'Xerath', 'Vel\'Koz', 'Zyra', 'Pyke'],
+      // タンク系カウンター
+      'Tank': ['Vayne', 'Kog\'Maw', 'Kai\'Sa', 'Cassiopeia', 'Azir']
+    };
+
+    const championTags = champion.tags || [];
+    let strongCounters = [];
+
+    // 主要タグに基づいてカウンターを取得
+    championTags.forEach(tag => {
+      if (counterMap[tag]) {
+        strongCounters = strongCounters.concat(counterMap[tag]);
+      }
+    });
+
+    // 特定チャンピオンの個別カウンター
+    const specificCounters = this.getSpecificCounters(champion.name);
+    strongCounters = strongCounters.concat(specificCounters);
+
+    // 重複除去と最大5個に制限
+    const top5Strong = [...new Set(strongCounters)].slice(0, 5);
+    
+    // 弱いチャンピオンを生成（このチャンピオンが強いチャンピオン）
+    const weakAgainst = this.generateWeakAgainstData(champion);
+    const bottom5Weak = [...new Set(weakAgainst)].slice(0, 5);
+
+    return {
+      strongAgainst: top5Strong,
+      weakAgainst: bottom5Weak
+    };
+  }
+
+  /**
+   * 弱いチャンピオンデータ生成（このチャンピオンが強いチャンピオン）
+   */
+  generateWeakAgainstData(champion) {
+    const weakMap = {
+      // このチャンピオンが弱いチャンピオンたち
+      'Assassin': ['Darius', 'Garen', 'Nasus', 'Maokai', 'Ornn'],
+      'Fighter': ['Azir', 'Xerath', 'Ziggs', 'Lux', 'Vel\'Koz'],
+      'Mage': ['Yasuo', 'Zed', 'Talon', 'Katarina', 'Kassadin'],
+      'Marksman': ['Malphite', 'Rammus', 'Hecarim', 'Zed', 'Talon'],
+      'Support': ['Zed', 'Talon', 'Yasuo', 'Irelia', 'Camille'],
+      'Tank': ['Vayne', 'Fiora', 'Camille', 'Darius', 'Jax']
+    };
+
+    const championTags = champion.tags || [];
+    let weakAgainst = [];
+
+    championTags.forEach(tag => {
+      if (weakMap[tag]) {
+        weakAgainst = weakAgainst.concat(weakMap[tag]);
+      }
+    });
+
+    // 特定チャンピオンの個別弱点
+    const specificWeak = this.getSpecificWeakAgainst(champion.name);
+    weakAgainst = weakAgainst.concat(specificWeak);
+
+    return [...new Set(weakAgainst)].slice(0, 5);
+  }
+
+  /**
+   * 強いチャンピオンデータ生成
+   */
+  generateStrongAgainstData(champion) {
+    const strongMap = {
+      'Assassin': ['Mage', 'Marksman'],
+      'Fighter': ['Tank', 'Assassin'],
+      'Mage': ['Fighter', 'Tank'],
+      'Marksman': ['Tank', 'Fighter'],
+      'Support': ['Assassin'],
+      'Tank': ['Assassin', 'Mage']
+    };
+
+    const championTags = champion.tags || [];
+    let strongAgainst = [];
+
+    championTags.forEach(tag => {
+      if (strongMap[tag]) {
+        strongAgainst = strongAgainst.concat(strongMap[tag]);
+      }
+    });
+
+    return [...new Set(strongAgainst)].slice(0, 3);
+  }
+
+  /**
+   * 特定チャンピオンの個別カウンター
+   */
+  getSpecificCounters(championName) {
+    const specificCounters = {
+      'Yasuo': ['Annie', 'Malphite', 'Rammus'],
+      'Zed': ['Kayle', 'Malphite', 'Lissandra'],
+      'Katarina': ['Diana', 'Kassadin', 'Galio'],
+      'Akali': ['Diana', 'Galio', 'Malzahar'],
+      'Fizz': ['Diana', 'Galio', 'Vladimir'],
+      'Leblanc': ['Galio', 'Kassadin', 'Malzahar'],
+      'Vayne': ['Hecarim', 'Malphite', 'Rammus'],
+      'Jinx': ['Hecarim', 'Zed', 'Talon'],
+      'Ashe': ['Hecarim', 'Zed', 'Nocturne'],
+      'Darius': ['Vayne', 'Gnar', 'Kennen'],
+      'Garen': ['Vayne', 'Darius', 'Fiora'],
+      'Nasus': ['Vayne', 'Darius', 'Gnar']
+    };
+
+    return specificCounters[championName] || [];
+  }
+
+  /**
+   * 特定チャンピオンの個別弱点
+   */
+  getSpecificWeakAgainst(championName) {
+    const specificWeak = {
+      'Yasuo': ['Syndra', 'Annie', 'Lissandra'],
+      'Zed': ['Exhaust + ADC', 'Kayle', 'Zhonyas'],
+      'Katarina': ['CC Heavy', 'Diana', 'Galio'],
+      'Akali': ['Pink Ward', 'Galio', 'Kassadin'],
+      'Fizz': ['Zhonya', 'Barrier', 'Distance'],
+      'Leblanc': ['MR Items', 'Sustain', 'Waveclear'],
+      'Vayne': ['Early Game', 'CC Chain', 'Burst'],
+      'Jinx': ['Dive Comp', 'Assassins', 'Gap Close'],
+      'Ashe': ['Mobility', 'Dive', 'Flanking'],
+      'Darius': ['Kiting', 'Range', 'Mobility'],
+      'Garen': ['Kiting', 'True Damage', 'Sustain'],
+      'Nasus': ['Early Pressure', 'Kiting', 'Split']
+    };
+
+    return specificWeak[championName] || [];
   }
 
   /**

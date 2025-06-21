@@ -85,15 +85,16 @@ export class HtmlGenerator {
     const champions = Object.values(gameData.champions || {});
     const championStats = gameData.championStats || {};
     
-    // 統計データを結合
+    // 統計データを結合（champion.idをキーとして使用）
     const enrichedChampions = champions.map(champion => ({
       ...champion,
-      stats: championStats[champion.key] || {
+      stats: championStats[champion.id] || {
         totalGames: 0,
         wins: 0,
         losses: 0,
         winRate: '0.0',
-        averageKDA: { kills: '0.0', deaths: '0.0', assists: '0.0' }
+        averageKDA: { kills: '0.0', deaths: '0.0', assists: '0.0' },
+        counters: []
       }
     }));
     
@@ -138,11 +139,11 @@ export class HtmlGenerator {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="League of Legends ${sortName} - 世界最高速度のチャンピオンカウンター情報">
-    <meta name="keywords" content="LoL,League of Legends,チャンピオン,カウンター,攻略,${sortName}">
-    <title>${sortName} - FastestLOLCounterFinder</title>
+    <meta name="description" content="League of Legends ${sortName} カウンター情報 - 世界最高速度でカウンターピックを検索">
+    <meta name="keywords" content="LoL,League of Legends,チャンピオン,カウンター,カウンターピック,攻略,${sortName}">
+    <title>${sortName} カウンター - FastestLOLCounterFinder</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#1e88e5">
+    <meta name="theme-color" content="#e53e3e">
 </head>
 <body>
     ${navigationHtml}
@@ -185,16 +186,17 @@ ${navItems}
     <table width="100%" cellpadding="16" cellspacing="0" border="0">
         <tr>
             <td align="center">
-                <h1>FastestLOLCounterFinder</h1>
-                <h2>${sortName}</h2>
-                <p>チャンピオン数: ${championCount} | 最終更新: ${lastUpdate}</p>
+                <h1>⚡ FastestLOLCounterFinder</h1>
+                <h2>🛡️ ${sortName} カウンター情報</h2>
+                <p><b>チャンピオン数: ${championCount} | 最終更新: ${lastUpdate}</b></p>
+                <p><small>敵チャンピオンを選択して、カウンターピックを瞬時に確認しよう！</small></p>
             </td>
         </tr>
     </table>`;
   }
 
   /**
-   * チャンピオンテーブル生成
+   * チャンピオンテーブル生成（カウンター特化）
    */
   generateChampionTable(champions) {
     if (champions.length === 0) {
@@ -212,45 +214,48 @@ ${navItems}
       this.generateChampionRow(champion)
     ).join('\n');
 
-    return `    <!-- チャンピオンテーブル -->
+    return `    <!-- カウンターチャンピオンテーブル -->
     <table width="100%" cellpadding="8" cellspacing="0" border="1" bordercolor="#ddd">
         <tr bgcolor="#f5f5f5">
             <td width="80" align="center"><b>画像</b></td>
             <td width="150"><b>チャンピオン名</b></td>
-            <td width="100"><b>タイプ</b></td>
-            <td width="80" align="center"><b>勝率</b></td>
-            <td width="120" align="center"><b>平均KDA</b></td>
-            <td><b>説明</b></td>
+            <td><b>カウンター関係</b></td>
         </tr>
 ${championRows}
     </table>`;
   }
 
   /**
-   * チャンピオン行生成
+   * チャンピオン行生成（カウンター特化）
    */
   generateChampionRow(champion) {
-    const imagePath = this.getChampionImagePath(champion);
-    const imageTag = imagePath ? 
-      `<img src="${imagePath}" alt="${champion.name}" width="60" height="60" loading="lazy">` :
-      `<div style="width:60px;height:60px;background:#eee;display:inline-block;">${champion.name.substring(0,2)}</div>`;
+    // 非同期画像読み込み用のプレースホルダーとimage要素を生成
+    const championId = champion.id; // チャンピオン名（Ahri, Yasuo等）を使用
+    const imageSrc = `/images/champion/square/${championId}.png`;
+    
+    // プレースホルダーから画像への非同期切り替え
+    const imageTag = `<div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
+      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">${champion.name.substring(0,2)}</div>
+      <img class="champion-image" src="${imageSrc}" alt="${champion.name}" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
+    </div>`;
     
     const tags = (champion.tags || []).join(', ');
-    const winRate = champion.stats.winRate;
-    const kda = `${champion.stats.averageKDA.kills}/${champion.stats.averageKDA.deaths}/${champion.stats.averageKDA.assists}`;
     
-    // 説明文を短縮（パフォーマンス重視）
-    const description = champion.blurb ? 
-      champion.blurb.substring(0, 100) + (champion.blurb.length > 100 ? '...' : '') :
-      '情報なし';
+    // 新しいカウンター情報を取得
+    const counterData = champion.stats?.counterData || { strongAgainst: [], weakAgainst: [] };
+    const strongCounters = counterData.strongAgainst || [];
+    const weakCounters = counterData.weakAgainst || [];
+    
+    // フォーマット: "${チャンピオン名}が←強い　弱い→"
+    const strongText = strongCounters.length > 0 ? strongCounters.join(', ') : '算出中';
+    const weakText = weakCounters.length > 0 ? weakCounters.join(', ') : '算出中';
+    
+    const counterDisplayText = `${champion.name}が（←強い　弱い→） </br><b style="color:#2e7d32;">${strongText}</b>　<b style="color:#e53e3e;">${weakText}</b>`;
 
     return `        <tr>
             <td align="center">${imageTag}</td>
             <td><b>${champion.name}</b></td>
-            <td>${tags}</td>
-            <td align="center">${winRate}%</td>
-            <td align="center">${kda}</td>
-            <td>${description}</td>
+            <td>${counterDisplayText}</td>
         </tr>`;
   }
 
@@ -325,6 +330,36 @@ ${championRows}
                 }
             });
         }
+
+        // 画像遅延読み込み最適化（表示速度に影響しない非同期処理）
+        document.addEventListener('DOMContentLoaded', () => {
+            // Intersection Observer APIを使用して可視領域内の画像のみ優先読み込み
+            if ('IntersectionObserver' in window) {
+                const imageObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const img = entry.target.querySelector('.champion-image');
+                            if (img && !img.dataset.loaded) {
+                                img.dataset.loaded = 'true';
+                                // 画像が既に読み込まれていない場合のみ処理
+                                if (img.complete && img.naturalHeight !== 0) {
+                                    img.onload();
+                                }
+                            }
+                            imageObserver.unobserve(entry.target);
+                        }
+                    });
+                }, {
+                    rootMargin: '50px 0px', // 50px手前から読み込み開始
+                    threshold: 0.1
+                });
+
+                // 全てのチャンピオン画像コンテナを監視
+                document.querySelectorAll('.champion-image-container').forEach(container => {
+                    imageObserver.observe(container);
+                });
+            }
+        });
     </script>`;
   }
 
