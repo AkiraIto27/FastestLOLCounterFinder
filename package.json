@@ -1,0 +1,70 @@
+{
+  "name": "fastest-lol-counter-finder",
+  "version": "1.0.0",
+  "description": "世界最高速度のLeague of Legendsカウンター情報サイト - Static-Firstアーキテクチャ実装",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:dev": "node src/build.js --dev",
+    "build:prod": "node src/build.js --prod",
+    "serve": "npx http-server dist -p 3000 -c-1",
+    "verify-api-key": "node src/verify-api-key.js",
+    "clean": "rm -rf dist/* data/cache.json",
+    "predev": "npm run clean",
+    "dev": "npm run build:dev && npm run serve"
+  },
+  "keywords": [
+    "league-of-legends",
+    "riot-api",
+    "static-site",
+    "performance",
+    "jamstack"
+  ],
+  "author": "Staff Engineer",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "fs-extra": "^11.2.0",
+    "glob": "^10.3.10",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/FastestLOLCounterFinder.git"
+  },
+  "config": {
+    "api": {
+      "baseUrl": "https://jp1-api.riotgames.com",
+      "accountBaseUrl": "https://asia.api.riotgames.com",
+      "rateLimit": {
+        "requestsPerSecond": 20,
+        "requestsPer2Minutes": 100
+      }
+    },
+    "output": {
+      "htmlPages": [
+        "index.html",
+        "a-z.html", 
+        "z-a.html",
+        "category-assassin.html",
+        "category-fighter.html",
+        "category-mage.html",
+        "category-marksman.html",
+        "category-support.html",
+        "category-tank.html"
+      ]
+    },
+    "performance": {
+      "targetFirstPaint": 100,
+      "targetLCP": 500,
+      "targetCLS": 0.1,
+      "maxInitialPageSize": 51200
+    }
+  }
+}
