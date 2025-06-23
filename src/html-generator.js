@@ -142,7 +142,7 @@ export class HtmlGenerator {
     <meta name="description" content="League of Legends ${sortName} カウンター情報 - 世界最高速度でカウンターピックを検索">
     <meta name="keywords" content="LoL,League of Legends,チャンピオン,カウンター,カウンターピック,攻略,${sortName}">
     <title>${sortName} カウンター - FastestLOLCounterFinder</title>
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#e53e3e">
 </head>
 <body>
@@ -160,7 +160,7 @@ export class HtmlGenerator {
    */
   generateNavigation(currentSort) {
     const navItems = Object.entries(this.sortTypes).map(([key, config]) => {
-      const href = key === 'index' ? '/' : `/${key}.html`;
+      const href = key === 'index' ? 'index.html' : `${key}.html`;
       const isCurrent = key === currentSort;
       const style = isCurrent ? ' bgcolor="#e3f2fd"' : '';
       
@@ -231,7 +231,7 @@ ${championRows}
   generateChampionRow(champion) {
     // 非同期画像読み込み用のプレースホルダーとimage要素を生成
     const championId = champion.id; // チャンピオン名（Ahri, Yasuo等）を使用
-    const imageSrc = `/images/champion/square/${championId}.png`;
+    const imageSrc = `images/champion/square/${championId}.png`;
     
     // プレースホルダーから画像への非同期切り替え
     const imageTag = `<div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
