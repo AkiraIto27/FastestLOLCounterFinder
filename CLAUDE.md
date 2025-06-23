@@ -9,10 +9,16 @@ League of Legends カウンター情報を極限まで高速表示するStatic-F
 - **最小限のデータ転送**: 初期表示データ量の極限削減
 
 ## 技術スタック
-- **Runtime**: Node.js (ビルド時のみ)
+- **Runtime**: Node.js >=18.0.0 (ビルド時のみ)
 - **出力**: 純粋な静的HTML + Service Worker
 - **スタイリング**: `<table>`タグのみ（CSS不使用）
 - **API**: Riot Games API v4/v5
+- **依存関係**:
+  - node-fetch: ^3.3.2 (HTTP クライアント)
+  - fs-extra: ^11.2.0 (ファイル操作拡張)
+  - glob: ^10.3.10 (ファイルパス検索)
+  - dotenv: ^16.3.1 (環境変数管理)
+  - http-server: ^14.1.1 (開発用サーバー)
 
 ## ビルドコマンド
 ```bash
@@ -27,6 +33,15 @@ npm run serve
 
 # APIキー検証
 npm run verify-api-key
+
+# 出力とキャッシュクリア
+npm run clean
+
+# 開発前クリーンアップ
+npm run predev
+
+# ビルド+サーバー起動（一括実行）
+npm run dev
 ```
 
 ## 環境変数
@@ -34,21 +49,56 @@ npm run verify-api-key
 # .env ファイルに設定
 RIOT_API_KEY=your_personal_api_key_here
 TARGET_REGION=jp1
+ACCOUNT_REGION=asia
 OUTPUT_DIR=./dist
+CACHE_DIR=./data
+DEBUG_MODE=false
+```
+
+## プロジェクト設定（package.json config）
+```json
+{
+  "api": {
+    "baseUrl": "https://jp1-api.riotgames.com",
+    "accountBaseUrl": "https://asia.api.riotgames.com",
+    "rateLimit": {
+      "requestsPerSecond": 20,
+      "requestsPer2Minutes": 100
+    }
+  },
+  "output": {
+    "htmlPages": [
+      "index.html", "a-z.html", "z-a.html",
+      "category-assassin.html", "category-fighter.html",
+      "category-mage.html", "category-marksman.html", 
+      "category-support.html", "category-tank.html"
+    ]
+  },
+  "performance": {
+    "targetFirstPaint": 100,
+    "targetLCP": 500, 
+    "targetCLS": 0.1,
+    "maxInitialPageSize": 51200
+  }
+}
 ```
 
 ## API制約とレート制限
 - **個人用APIキー**: 1秒20リクエスト, 2分100リクエスト（リージョン毎）
 - **429エラー対応**: Retry-Afterヘッダー準拠の待機実装必須
-- **データ永続化**: APIレスポンスをdata.jsonにキャッシュ
+- **データ永続化**: APIレスポンスをcache.jsonにキャッシュ
+- **現在対応バージョン**: 15.12.1 (2025年6月21日時点)
+- **対象リージョン**: jp1 (日本) / asia (アカウント情報)
 
 ## プロジェクト構造
 ```
 ├── src/
-│   ├── build.js           # メインビルドスクリプト
-│   ├── api-client.js      # Riot API クライアント
-│   ├── html-generator.js  # 静的HTML生成器
-│   └── image-downloader.js # 画像ローカル化
+│   ├── build.js                 # メインビルドスクリプト
+│   ├── api-client.js            # Riot API クライアント
+│   ├── html-generator.js        # 静的HTML生成器
+│   ├── image-downloader.js      # 画像ローカル化
+│   ├── service-worker-updater.js # Service Worker更新処理
+│   └── verify-api-key.js        # APIキー検証ツール
 ├── dist/                  # 生成物出力ディレクトリ
 │   ├── index.html         # 新着順（デフォルト）
 │   ├── a-z.html          # A-Z順
