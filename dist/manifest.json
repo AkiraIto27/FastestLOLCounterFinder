@@ -1,0 +1,23 @@
+{
+  "name": "FastestLOLCounterFinder",
+  "short_name": "LOLCounter",
+  "description": "世界最高速度のLeague of Legendsカウンター情報サイト",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1e88e5",
+  "orientation": "portrait-primary",
+  "categories": [
+    "games",
+    "sports"
+  ],
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,148 @@
+name: Update LOL Counter Site
+
+on:
+  # 日4回自動実行 (JST: 6:00, 12:00, 18:00, 24:00)
+  schedule:
+    - cron: '0 21 * * *'  # JST 06:00 (UTC 21:00 前日)
+    - cron: '0 3 * * *'   # JST 12:00 (UTC 03:00)
+    - cron: '0 9 * * *'   # JST 18:00 (UTC 09:00)
+    - cron: '0 15 * * *'  # JST 24:00 (UTC 15:00)
+  
+  # 手動実行トリガー
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type (dev/prod)'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+        - dev
+        - prod
+
+  # プッシュ時実行 (メイン機能更新時)
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - '.github/workflows/**'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Verify API key configuration
+      run: |
+        if [ -z "${{ secrets.RIOT_API_KEY }}" ]; then
+          echo "❌ RIOT_API_KEY secret is not configured"
+          exit 1
+        fi
+        echo "✅ API key configured"
+    
+    - name: Run API key verification
+      env:
+        RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+        TARGET_REGION: jp1
+        ACCOUNT_REGION: asia
+      run: |
+        npm run verify-api-key || {
+          echo "❌ API key verification failed"
+          exit 1
+        }
+    
+    - name: Clean previous build
+      run: npm run clean
+    
+    - name: Build static site
+      env:
+        RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+        TARGET_REGION: jp1
+        ACCOUNT_REGION: asia
+        OUTPUT_DIR: ./dist
+        CACHE_DIR: ./data
+        DEBUG_MODE: false
+        VERBOSE_LOGGING: true
+      run: |
+        # 本番ビルド実行
+        npm run build:prod
+        
+        # ビルド結果検証
+        if [ ! -f "dist/index.html" ]; then
+          echo "❌ Build failed: index.html not generated"
+          exit 1
+        fi
+        
+        # ファイルサイズ確認 
+        echo "📊 Build statistics:"
+        echo "HTML files: $(find dist -name "*.html" | wc -l)"
+        echo "Total size: $(du -sh dist/)"
+        echo "Images: $(find dist/images -name "*.jpg" | wc -l) champion images"
+    
+    - name: Cache build artifacts
+      uses: actions/cache@v3
+      with:
+        path: |
+          data/cache.json
+          dist/images
+        key: lol-data-${{ hashFiles('data/cache.json') }}
+        restore-keys: |
+          lol-data-
+    
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/main'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
+        publish_branch: gh-pages
+        enable_jekyll: false
+        commit_message: |
+          🎮 Auto-update LOL counter data
+          
+          - Updated: ${{ steps.date.outputs.date }}
+          - Build: ${{ github.run_number }}
+          - Commit: ${{ github.sha }}
+          
+          🤖 Generated with GitHub Actions
+    
+    - name: Notify build status
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ Site updated successfully!"
+          echo "🌐 Live at: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+        else
+          echo "❌ Build failed. Check logs above."
+        fi
+    
+    - name: Performance audit
+      if: success()
+      run: |
+        echo "🚀 Performance metrics:"
+        echo "Index.html size: $(wc -c < dist/index.html) bytes"
+        echo "Service Worker: $(test -f dist/sw.js && echo "✅ Generated" || echo "❌ Missing")"
+        echo "Manifest: $(test -f dist/manifest.json && echo "✅ Generated" || echo "❌ Missing")"
+        
+        # First Paint目標チェック (50KB以下)
+        INDEX_SIZE=$(wc -c < dist/index.html)
+        if [ $INDEX_SIZE -lt 51200 ]; then
+          echo "✅ First Paint目標達成: ${INDEX_SIZE} bytes < 50KB"
+        else
+          echo "⚠️  First Paint目標未達成: ${INDEX_SIZE} bytes > 50KB"
+        fi
