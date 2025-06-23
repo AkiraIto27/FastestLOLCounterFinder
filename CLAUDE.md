@@ -22,20 +22,29 @@ League of Legends カウンター情報を極限まで高速表示するStatic-F
 
 ## ビルドコマンド
 ```bash
-# 開発用ビルド（テスト用）
+# 開発用ビルド（テスト用）- ルート直下配置
 npm run build:dev
 
-# 本番ビルド（全データ取得）
+# 本番ビルド（全データ取得）- ルート直下配置
 npm run build:prod
 
-# ローカル開発サーバー
+# 従来のdist/配置ビルド（互換性用）
+npm run build:dist
+
+# ローカル開発サーバー（ルート直下）
 npm run serve
+
+# dist/配置サーバー（互換性用）
+npm run serve:dist
 
 # APIキー検証
 npm run verify-api-key
 
-# 出力とキャッシュクリア
+# ルート直下クリーンアップ（デフォルト）
 npm run clean
+
+# dist/配置クリーンアップ（互換性用）
+npm run clean:dist
 
 # 開発前クリーンアップ
 npm run predev
@@ -50,7 +59,7 @@ npm run dev
 RIOT_API_KEY=your_personal_api_key_here
 TARGET_REGION=jp1
 ACCOUNT_REGION=asia
-OUTPUT_DIR=./dist
+OUTPUT_DIR=.
 CACHE_DIR=./data
 DEBUG_MODE=false
 ```
@@ -99,13 +108,14 @@ DEBUG_MODE=false
 │   ├── image-downloader.js      # 画像ローカル化
 │   ├── service-worker-updater.js # Service Worker更新処理
 │   └── verify-api-key.js        # APIキー検証ツール
-├── dist/                  # 生成物出力ディレクトリ
-│   ├── index.html         # 新着順（デフォルト）
-│   ├── a-z.html          # A-Z順
-│   ├── z-a.html          # Z-A順
-│   ├── category-*.html   # カテゴリ別
-│   ├── images/           # ローカル化画像
-│   └── sw.js             # Service Worker
+├── index.html            # 新着順（デフォルト）- ルート直下配置
+├── a-z.html             # A-Z順
+├── z-a.html             # Z-A順
+├── category-*.html      # カテゴリ別
+├── images/              # ローカル化画像
+├── manifest.json        # PWA設定
+├── sw.js                # Service Worker
+├── dist/                # 互換性用ディレクトリ（通常は空）
 ├── data/
 │   └── cache.json        # APIレスポンスキャッシュ
 └── templates/

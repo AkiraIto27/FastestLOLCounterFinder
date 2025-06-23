@@ -7,9 +7,12 @@
   "scripts": {
     "build:dev": "node src/build.js --dev",
     "build:prod": "node src/build.js --prod",
-    "serve": "npx http-server dist -p 3000 -c-1",
+    "build:dist": "OUTPUT_DIR=./dist node src/build.js --prod",
+    "serve": "npx http-server . -p 3000 -c-1",
+    "serve:dist": "npx http-server dist -p 3000 -c-1",
     "verify-api-key": "node src/verify-api-key.js",
-    "clean": "rm -rf dist/* data/cache.json",
+    "clean": "rm -f *.html manifest.json sw.js && rm -rf images/ data/cache.json",
+    "clean:dist": "rm -rf dist/* data/cache.json",
     "predev": "npm run clean",
     "dev": "npm run build:dev && npm run serve"
   },
