@@ -1,14 +1,14 @@
 name: Update LOL Counter Site
 
 on:
-  # 日4回自動実行 (JST: 6:00, 12:00, 18:00, 24:00)
+  # 1日4回の自動実行（JST: 6:00, 12:00, 18:00, 24:00）
   schedule:
-    - cron: '0 21 * * *'  # JST 06:00 (UTC 21:00 前日)
+    - cron: '0 21 * * *'  # JST 06:00 (UTC 21:00)
     - cron: '0 3 * * *'   # JST 12:00 (UTC 03:00)
     - cron: '0 9 * * *'   # JST 18:00 (UTC 09:00)
     - cron: '0 15 * * *'  # JST 24:00 (UTC 15:00)
   
-  # 手動実行トリガー
+  # 手動実行も可能
   workflow_dispatch:
     inputs:
       build_type:
@@ -17,16 +17,8 @@ on:
         default: 'prod'
         type: choice
         options:
-        - dev
         - prod
-
-  # プッシュ時実行 (メイン機能更新時)
-  push:
-    branches: [ main ]
-    paths:
-      - 'src/**'
-      - 'package.json'
-      - '.github/workflows/**'
+        - dev
 
 jobs:
   build-and-deploy:
@@ -74,7 +66,7 @@ jobs:
         RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
         TARGET_REGION: jp1
         ACCOUNT_REGION: asia
-        OUTPUT_DIR: ./dist
+        OUTPUT_DIR: .
         CACHE_DIR: ./data
         DEBUG_MODE: false
         VERBOSE_LOGGING: true
@@ -83,23 +75,22 @@ jobs:
         npm run build:prod
         
         # ビルド結果検証
-        if [ ! -f "dist/index.html" ]; then
+        if [ ! -f "index.html" ]; then
           echo "❌ Build failed: index.html not generated"
           exit 1
         fi
         
         # ファイルサイズ確認 
         echo "📊 Build statistics:"
-        echo "HTML files: $(find dist -name "*.html" | wc -l)"
-        echo "Total size: $(du -sh dist/)"
-        echo "Images: $(find dist/images -name "*.jpg" | wc -l) champion images"
+        echo "HTML files: $(find . -maxdepth 1 -name "*.html" | wc -l)"
+        echo "Images: $(find images -name "*.jpg" | wc -l) champion images"
     
     - name: Cache build artifacts
       uses: actions/cache@v3
       with:
         path: |
           data/cache.json
-          dist/images
+          images
         key: lol-data-${{ hashFiles('data/cache.json') }}
         restore-keys: |
           lol-data-
@@ -109,9 +100,17 @@ jobs:
       if: github.ref == 'refs/heads/main'
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./dist
+        publish_dir: .
         publish_branch: gh-pages
         enable_jekyll: false
+        exclude_assets: |
+          node_modules
+          src
+          .env*
+          .git*
+          *.md
+          package*.json
+          data
         commit_message: |
           🎮 Auto-update LOL counter data
           
@@ -135,12 +134,12 @@ jobs:
       if: success()
       run: |
         echo "🚀 Performance metrics:"
-        echo "Index.html size: $(wc -c < dist/index.html) bytes"
-        echo "Service Worker: $(test -f dist/sw.js && echo "✅ Generated" || echo "❌ Missing")"
-        echo "Manifest: $(test -f dist/manifest.json && echo "✅ Generated" || echo "❌ Missing")"
+        echo "Index.html size: $(wc -c < index.html) bytes"
+        echo "Service Worker: $(test -f sw.js && echo "✅ Generated" || echo "❌ Missing")"
+        echo "Manifest: $(test -f manifest.json && echo "✅ Generated" || echo "❌ Missing")"
         
         # First Paint目標チェック (50KB以下)
-        INDEX_SIZE=$(wc -c < dist/index.html)
+        INDEX_SIZE=$(wc -c < index.html)
         if [ $INDEX_SIZE -lt 51200 ]; then
           echo "✅ First Paint目標達成: ${INDEX_SIZE} bytes < 50KB"
         else
