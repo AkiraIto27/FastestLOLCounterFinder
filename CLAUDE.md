@@ -77,7 +77,7 @@ DEBUG_MODE=false
   },
   "output": {
     "htmlPages": [
-      "index.html", "a-z.html", "z-a.html",
+      "a-z.html", "z-a.html",
       "category-assassin.html", "category-fighter.html",
       "category-mage.html", "category-marksman.html", 
       "category-support.html", "category-tank.html"
@@ -108,8 +108,7 @@ DEBUG_MODE=false
 │   ├── image-downloader.js      # 画像ローカル化
 │   ├── service-worker-updater.js # Service Worker更新処理
 │   └── verify-api-key.js        # APIキー検証ツール
-├── index.html            # 新着順（デフォルト）- ルート直下配置
-├── a-z.html             # A-Z順
+├── index.html            # A-Z順（メインページ）- ルート直下配置  
 ├── z-a.html             # Z-A順
 ├── category-*.html      # カテゴリ別
 ├── images/              # ローカル化画像

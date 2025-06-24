@@ -52,7 +52,6 @@
     },
     "output": {
       "htmlPages": [
-        "index.html",
         "a-z.html", 
         "z-a.html",
         "category-assassin.html",
