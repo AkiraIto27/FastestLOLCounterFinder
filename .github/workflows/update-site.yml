@@ -197,6 +197,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-counter-data
     if: needs.build-counter-data.outputs.build-success == 'true' && github.ref == 'refs/heads/main'
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
     - name: Checkout repository
@@ -468,36 +474,17 @@ jobs:
         echo "... (showing first 10 files)"
         echo "=============================================="
     
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
+    - name: Setup Pages
+      uses: actions/configure-pages@v3
+    
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v2
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: .
-        publish_branch: gh-pages
-        enable_jekyll: false
-        exclude_assets: |
-          node_modules
-          src
-          .env*
-          .git*
-          *.md
-          package*.json
-          data
-          templates
-          .github
-        commit_message: |
-          ⚡ FastestLOL True Static-First Auto-Update
-          
-          📊 Build Stats:
-          - Pages Generated: ${{ needs.build-counter-data.outputs.pages-generated }}
-          - Listing Pages: ${{ needs.build-counter-data.outputs.listing-pages }}
-          - Detail Pages: ${{ needs.build-counter-data.outputs.detail-pages }}
-          - Data Quality: ${{ needs.build-counter-data.outputs.data-quality }}
-          - Build: #${{ github.run_number }}
-          - Index Size: ${{ needs.build-counter-data.outputs.index-size }} bytes
-          
-          🚀 Architecture: True Static-First + Zero-JS + Cache-First
-          🤖 Generated with GitHub Actions
+        path: .
+    
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v2
 
   # Job 3: 通知とメトリクス
   notify-completion:
