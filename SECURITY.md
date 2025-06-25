@@ -1,6 +1,8 @@
-# セキュリティ設定ガイド
+# FastestLOL True Static-First セキュリティ設定ガイド
 
-## 🔐 GitHub Actions Secrets
+## 🔐 GitHub Actions Secrets（必須設定）
+
+> **重要**: 以下のシークレットをGitHubリポジトリの Settings > Secrets and variables > Actions で設定してください。
 
 ### 必須設定
 ```bash
@@ -87,6 +89,17 @@ export const CONSTANTS = {
   MAX_FILE_SIZE: 51200, // 50KB
   IMAGE_QUALITY: 85,
   CACHE_DURATION: 86400000 // 24時間
+};
+```
+
+### セキュリティ固定値
+```javascript
+const SECURITY_CONFIG = {
+  API_TIMEOUT: 30000,        // APIタイムアウト
+  MAX_RETRIES: 3,            // 最大リトライ回数
+  RATE_LIMIT_BUFFER: 0.9,    // レート制限バッファ
+  CACHE_ENCRYPTION: false,   // キャッシュ暗号化（不要）
+  LOG_SANITIZATION: true     // ログ機密情報除去
 };
 ```
 

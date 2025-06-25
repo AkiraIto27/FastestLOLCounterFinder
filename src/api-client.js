@@ -1,6 +1,6 @@
 /**
- * Riot Games API クライアント
- * レート制限、エラーハンドリング、データ統合処理を含む
+ * Riot Games API クライアント - 完全カウンター情報生成システム
+ * レート制限、統計計算、カウンター関係分析を含む
  */
 
 import fetch from 'node-fetch';
@@ -153,43 +153,71 @@ export class ApiClient {
   }
 
   /**
-   * 全データ取得メイン処理
+   * 全データ取得メイン処理 - 完全カウンター情報生成
    */
   async fetchAllData() {
-    this.log('info', 'Starting comprehensive data fetch');
+    this.log('info', 'Starting comprehensive counter data generation');
     
     const gameData = {
       metadata: {
         fetchTime: new Date().toISOString(),
         version: null,
-        region: this.targetRegion
+        region: this.targetRegion,
+        patchVersion: null,
+        totalMatches: 0,
+        uniquePlayers: 0,
+        dataQuality: {
+          coverageByLane: {},
+          averageSampleSize: 0,
+          reliability: 'high'
+        }
       },
       champions: {},
       championStats: {},
       matchData: [],
+      highEloPlayers: [],
+      rawMatchups: [],
+      processedCounters: {},
       errors: []
     };
     
     try {
-      // Step 1: 最新バージョン取得
+      // Phase 1: 基本データ取得
       gameData.metadata.version = await this.getLatestVersion();
+      gameData.metadata.patchVersion = gameData.metadata.version;
       this.log('info', `Latest version: ${gameData.metadata.version}`);
       
-      // Step 2: チャンピオンデータ取得
       gameData.champions = await this.getChampionData(gameData.metadata.version);
       this.log('info', `Fetched ${Object.keys(gameData.champions).length} champions`);
       
-      // Step 3: チャンピオンローテーション取得
-      gameData.championRotations = await this.getChampionRotations();
+      // Phase 2: 高ELOプレイヤーデータ収集
+      if (this.config.isProd) {
+        gameData.highEloPlayers = await this.getHighEloPlayers();
+        this.log('info', `Found ${gameData.highEloPlayers.length} high ELO players`);
+        
+        // Phase 3: 試合履歴大量収集
+        gameData.matchData = await this.collectRankedMatches(gameData.highEloPlayers);
+        this.log('info', `Collected ${gameData.matchData.length} ranked matches`);
+        
+        // Phase 4: 対面データ処理
+        gameData.rawMatchups = this.extractMatchupData(gameData.matchData);
+        this.log('info', `Extracted ${gameData.rawMatchups.length} matchups`);
+        
+        // Phase 5: カウンター関係計算
+        gameData.processedCounters = this.calculateCounterRelationships(gameData.rawMatchups, gameData.champions);
+      } else {
+        // 開発モード: サンプルデータ使用
+        this.log('info', 'Development mode: using sample data');
+        gameData.matchData = await this.getSampleMatchData();
+        gameData.processedCounters = this.generateSampleCounters(gameData.champions);
+      }
       
-      // Step 4: ランク高プレイヤーのデータ取得（サンプル）
-      const sampleMatches = await this.getSampleMatchData();
-      gameData.matchData = sampleMatches;
+      // Phase 6: 最終統計計算
+      gameData.championStats = this.calculateFinalStats(gameData.processedCounters, gameData.champions);
+      gameData.metadata.totalMatches = gameData.matchData.length;
+      gameData.metadata.uniquePlayers = new Set(gameData.matchData.map(m => m.info?.participants || []).flat().map(p => p.puuid)).size;
       
-      // Step 5: チャンピオン統計計算
-      gameData.championStats = this.calculateChampionStats(gameData.matchData, gameData.champions);
-      
-      this.log('info', 'Data fetch completed successfully');
+      this.log('info', 'Counter data generation completed successfully');
       return gameData;
       
     } catch (error) {
@@ -199,7 +227,7 @@ export class ApiClient {
         stack: error.stack
       });
       
-      this.log('error', 'Error during data fetch:', error.message);
+      this.log('error', 'Error during data generation:', error.message);
       return gameData;
     }
   }
@@ -208,8 +236,13 @@ export class ApiClient {
    * 最新ゲームバージョン取得
    */
   async getLatestVersion() {
-    const versions = await this.makeDdragonRequest(this.endpoints.ddragonVersions);
-    return versions[0]; // 最新バージョン
+    try {
+      const versions = await this.makeDdragonRequest(this.endpoints.ddragonVersions);
+      return versions[0]; // 最新バージョン
+    } catch (error) {
+      this.log('warn', 'Failed to fetch latest version, using fallback');
+      return '15.12.1'; // フォールバック
+    }
   }
 
   /**
@@ -263,116 +296,504 @@ export class ApiClient {
   }
 
   /**
-   * サンプルマッチデータ取得
+   * 高ELOプレイヤーリスト取得
    */
-  async getSampleMatchData() {
-    const samplePlayers = [
-      { gameName: 'Faker', tagLine: 'T1' },
-      { gameName: 'DWG Showmaker', tagLine: 'KR1' },
-      { gameName: 'DRX Deft', tagLine: 'KR1' }
-    ];
+  async getHighEloPlayers() {
+    const players = [];
+    const queues = ['RANKED_SOLO_5x5'];
     
-    const matchData = [];
-    
-    for (const player of samplePlayers) {
-      try {
-        // Account情報取得
-        const account = await this.makeRequest(
-          this.endpoints.accountByRiotId(player.gameName, player.tagLine)
-        );
-        
-        if (account.puuid) {
-          // 最近の試合ID取得（最大5試合）
-          const matchIds = await this.makeRequest(
-            `${this.endpoints.matchIdsByPuuid(account.puuid)}?count=5`
-          );
+    try {
+      for (const queue of queues) {
+        // Challenger
+        try {
+          const challengerUrl = `https://${this.targetRegion}.api.riotgames.com/lol/league/v4/challengerleagues/by-queue/${queue}`;
+          const challengerData = await this.makeRequest(challengerUrl);
           
-          // 試合詳細取得
-          for (const matchId of matchIds.slice(0, 2)) { // 最初の2試合のみ
-            try {
-              const matchDetail = await this.makeRequest(
-                this.endpoints.matchById(matchId)
-              );
-              matchData.push(matchDetail);
-              
-              // API呼び出し間隔制御
-              await this.sleep(200);
-              
-            } catch (error) {
-              this.log('warn', `Failed to fetch match ${matchId}:`, error.message);
+          // 上位100名に拡大
+          const topChallengers = challengerData.entries
+            .sort((a, b) => b.leaguePoints - a.leaguePoints)
+            .slice(0, 100);
+            
+          for (const entry of topChallengers) {
+            players.push({
+              summonerId: entry.summonerId,
+              tier: 'CHALLENGER',
+              rank: entry.rank,
+              leaguePoints: entry.leaguePoints,
+              puuid: null // 後で取得
+            });
+          }
+          
+          this.log('info', `Found ${topChallengers.length} Challenger players`);
+          await this.sleep(1100);
+          
+        } catch (error) {
+          this.log('warn', 'Failed to fetch Challenger data:', error.message);
+        }
+        
+        // Grandmaster
+        try {
+          const grandmasterUrl = `https://${this.targetRegion}.api.riotgames.com/lol/league/v4/grandmasterleagues/by-queue/${queue}`;
+          const grandmasterData = await this.makeRequest(grandmasterUrl);
+          
+          // 上位60名に拡大
+          const topGrandmasters = grandmasterData.entries
+            .sort((a, b) => b.leaguePoints - a.leaguePoints)
+            .slice(0, 60);
+            
+          for (const entry of topGrandmasters) {
+            players.push({
+              summonerId: entry.summonerId,
+              tier: 'GRANDMASTER',
+              rank: entry.rank,
+              leaguePoints: entry.leaguePoints,
+              puuid: null
+            });
+          }
+          
+          this.log('info', `Found ${topGrandmasters.length} Grandmaster players`);
+          await this.sleep(1100);
+          
+        } catch (error) {
+          this.log('warn', 'Failed to fetch Grandmaster data:', error.message);
+        }
+        
+        // Master (上位40名に拡大)
+        try {
+          const masterUrl = `https://${this.targetRegion}.api.riotgames.com/lol/league/v4/masterleagues/by-queue/${queue}`;
+          const masterData = await this.makeRequest(masterUrl);
+          
+          const topMasters = masterData.entries
+            .sort((a, b) => b.leaguePoints - a.leaguePoints)
+            .slice(0, 40);
+            
+          for (const entry of topMasters) {
+            players.push({
+              summonerId: entry.summonerId,
+              tier: 'MASTER',
+              rank: entry.rank,
+              leaguePoints: entry.leaguePoints,
+              puuid: null
+            });
+          }
+          
+          this.log('info', `Found ${topMasters.length} Master players`);
+          await this.sleep(1100);
+          
+        } catch (error) {
+          this.log('warn', 'Failed to fetch Master data:', error.message);
+        }
+      }
+      
+      // PUUID取得
+      for (let i = 0; i < players.length; i++) {
+        try {
+          const summonerData = await this.makeRequest(
+            `https://${this.targetRegion}.api.riotgames.com/lol/summoner/v4/summoners/${players[i].summonerId}`
+          );
+          players[i].puuid = summonerData.puuid;
+          
+          await this.sleep(55); // レート制限対応
+          
+        } catch (error) {
+          this.log('warn', `Failed to get PUUID for summoner ${players[i].summonerId}:`, error.message);
+        }
+      }
+      
+      return players.filter(p => p.puuid);
+      
+    } catch (error) {
+      this.log('error', 'Error fetching high ELO players:', error.message);
+      return [];
+    }
+  }
+  
+  /**
+   * 大量ランクマッチ収集
+   */
+  async collectRankedMatches(players) {
+    const allMatches = [];
+    const seenMatchIds = new Set();
+    const targetMatches = Math.min(1000, players.length * 10); // 最大1000試合に拡大
+    
+    this.log('info', `Collecting up to ${targetMatches} ranked matches from ${players.length} players`);
+    
+    for (const player of players) {
+      if (allMatches.length >= targetMatches) break;
+      
+      try {
+        // 最近のランクマッチID取得（40試合に拡大）
+        const matchIdsUrl = `${this.endpoints.matchIdsByPuuid(player.puuid)}?queue=420&count=40`; // RANKED_SOLO_5x5
+        const matchIds = await this.makeRequest(matchIdsUrl);
+        
+        // 各マッチの詳細取得
+        for (const matchId of matchIds) {
+          if (allMatches.length >= targetMatches) break;
+          if (seenMatchIds.has(matchId)) continue;
+          
+          try {
+            const matchDetail = await this.makeRequest(
+              this.endpoints.matchById(matchId)
+            );
+            
+            // フィルタリング: 有効な試合のみ
+            if (this.isValidMatch(matchDetail)) {
+              allMatches.push(matchDetail);
+              seenMatchIds.add(matchId);
             }
+            
+            await this.sleep(55); // レート制限対応
+            
+          } catch (error) {
+            this.log('warn', `Failed to fetch match ${matchId}:`, error.message);
           }
         }
         
-        // プレイヤー間でのAPI呼び出し間隔制御
-        await this.sleep(500);
+        await this.sleep(55);
         
       } catch (error) {
-        this.log('warn', `Failed to fetch data for ${player.gameName}#${player.tagLine}:`, error.message);
+        this.log('warn', `Failed to fetch matches for player ${player.summonerId}:`, error.message);
       }
     }
     
-    return matchData;
+    this.log('info', `Collected ${allMatches.length} valid matches`);
+    return allMatches;
+  }
+  
+  /**
+   * 試合有効性チェック
+   */
+  isValidMatch(match) {
+    if (!match.info) return false;
+    
+    const { gameDuration, gameMode, queueId } = match.info;
+    
+    // 条件チェック
+    return (
+      queueId === 420 && // ランクソロ
+      gameMode === 'CLASSIC' &&
+      gameDuration >= 900 && // 15分以上
+      gameDuration <= 3600 && // 60分以下
+      match.info.participants?.length === 10 // 10人フル参加
+    );
+  }
+  
+  /**
+   * サンプルマッチデータ取得（開発用）
+   */
+  async getSampleMatchData() {
+    // 開発用の軽量サンプルデータ
+    return [
+      {
+        metadata: { matchId: 'SAMPLE_1' },
+        info: {
+          gameMode: 'CLASSIC',
+          queueId: 420,
+          gameDuration: 1800,
+          participants: [
+            { championId: 266, championName: 'Aatrox', teamPosition: 'TOP', teamId: 100, win: true },
+            { championId: 103, championName: 'Ahri', teamPosition: 'MIDDLE', teamId: 100, win: true },
+            // ... 他8名のサンプル
+          ]
+        }
+      }
+    ];
   }
 
   /**
-   * チャンピオン統計とカウンター情報計算
+   * 対面データ抽出
    */
-  calculateChampionStats(matchData, champions) {
-    const stats = {};
+  extractMatchupData(matchData) {
+    const matchups = [];
     
-    // チャンピオン初期化
-    Object.keys(champions).forEach(championKey => {
-      const champion = champions[championKey];
-      stats[championKey] = {
-        name: champion.name,
+    matchData.forEach(match => {
+      if (!match.info?.participants) return;
+      
+      // レーン別グルーピング
+      const laneGroups = {
+        TOP: [],
+        MIDDLE: [],
+        BOTTOM: [],
+        UTILITY: [],
+        JUNGLE: []
+      };
+      
+      match.info.participants.forEach(participant => {
+        const lane = this.determineLane(participant);
+        if (lane) {
+          laneGroups[lane].push(participant);
+        }
+      });
+      
+      // 各レーンの対面を抽出
+      Object.entries(laneGroups).forEach(([lane, participants]) => {
+        if (participants.length === 2) { // 正常な1vs1
+          const [p1, p2] = participants;
+          
+          matchups.push({
+            matchId: match.metadata.matchId,
+            lane: lane,
+            champion1: {
+              id: p1.championId,
+              name: p1.championName,
+              win: p1.win,
+              teamId: p1.teamId
+            },
+            champion2: {
+              id: p2.championId,
+              name: p2.championName,
+              win: p2.win,
+              teamId: p2.teamId
+            }
+          });
+        }
+      });
+    });
+    
+    return matchups;
+  }
+  
+  /**
+   * レーン判定（複数指標による総合判定）
+   */
+  determineLane(participant) {
+    const position = participant.teamPosition;
+    const role = participant.role;
+    
+    // APIの値を優先するが、不正確な場合の補正
+    if (position && ['TOP', 'MIDDLE', 'BOTTOM', 'UTILITY', 'JUNGLE'].includes(position)) {
+      return position;
+    }
+    
+    // フォールバック: ロールベース
+    const roleMapping = {
+      'SOLO': 'TOP',
+      'DUO': 'MIDDLE', 
+      'DUO_CARRY': 'BOTTOM',
+      'DUO_SUPPORT': 'UTILITY',
+      'NONE': 'JUNGLE'
+    };
+    
+    return roleMapping[role] || null;
+  }
+  
+  /**
+   * カウンター関係計算システム
+   */
+  calculateCounterRelationships(matchups, champions) {
+    const matchupStats = new Map();
+    const championStats = {};
+    
+    // 初期化
+    Object.keys(champions).forEach(champKey => {
+      const champion = champions[champKey];
+      championStats[champion.id] = {
         id: champion.id,
+        name: champion.name,
         key: champion.key,
-        totalGames: 0,
-        wins: 0,
-        losses: 0,
-        winRate: '50.0',
-        averageKDA: { kills: '2.5', deaths: '2.0', assists: '3.0' },
-        tags: champion.tags || [],
-        counterData: this.generateCounterData(champion),
-        strongAgainst: this.generateStrongAgainstData(champion)
+        overallStats: {
+          totalGames: 0,
+          wins: 0,
+          winRate: 0.5,
+          isReliable: false
+        },
+        counterRelationships: {
+          strongCounters: [],
+          counters: [],
+          counteredBy: []
+        },
+        lanePerformance: {}
       };
     });
     
-    // マッチデータから統計計算（実データがある場合）
-    matchData.forEach(match => {
-      if (match.info && match.info.participants) {
-        match.info.participants.forEach(participant => {
-          const championName = participant.championName;
-          if (stats[championName]) {
-            stats[championName].totalGames++;
-            if (participant.win) {
-              stats[championName].wins++;
-            } else {
-              stats[championName].losses++;
-            }
-            
-            // KDA累積
-            stats[championName].averageKDA.kills += participant.kills || 0;
-            stats[championName].averageKDA.deaths += participant.deaths || 0;
-            stats[championName].averageKDA.assists += participant.assists || 0;
-          }
-        });
+    // 対面統計集計
+    matchups.forEach(matchup => {
+      const key1 = `${matchup.champion1.id}_vs_${matchup.champion2.id}_${matchup.lane}`;
+      const key2 = `${matchup.champion2.id}_vs_${matchup.champion1.id}_${matchup.lane}`;
+      
+      this.updateMatchupStat(matchupStats, key1, matchup.champion1.win);
+      this.updateMatchupStat(matchupStats, key2, matchup.champion2.win);
+      
+      // 全体統計更新
+      this.updateOverallStats(championStats, matchup.champion1.id, matchup.champion1.win);
+      this.updateOverallStats(championStats, matchup.champion2.id, matchup.champion2.win);
+    });
+    
+    // カウンター関係判定
+    this.processCounterRelationships(matchupStats, championStats);
+    
+    return championStats;
+  }
+  
+  /**
+   * 対面統計更新
+   */
+  updateMatchupStat(statsMap, key, isWin) {
+    if (!statsMap.has(key)) {
+      statsMap.set(key, { wins: 0, total: 0 });
+    }
+    
+    const stat = statsMap.get(key);
+    stat.total++;
+    if (isWin) stat.wins++;
+  }
+  
+  /**
+   * 全体統計更新
+   */
+  updateOverallStats(championStats, championId, isWin) {
+    if (championStats[championId]) {
+      championStats[championId].overallStats.totalGames++;
+      if (isWin) {
+        championStats[championId].overallStats.wins++;
+      }
+    }
+  }
+  
+  /**
+   * カウンター関係処理
+   */
+  processCounterRelationships(matchupStats, championStats) {
+    const MIN_SAMPLE_SIZE = 30;
+    const STRONG_COUNTER_THRESHOLD = 0.65;
+    const COUNTER_THRESHOLD = 0.56;
+    
+    matchupStats.forEach((stat, key) => {
+      if (stat.total < MIN_SAMPLE_SIZE) return;
+      
+      const parts = key.split('_vs_');
+      const championId = parts[0];
+      const remainingParts = parts[1].split('_');
+      const vsChampionId = remainingParts[0];
+      const lane = remainingParts[1];
+      const winRate = stat.wins / stat.total;
+      
+      const significance = this.calculateStatisticalSignificance(winRate, stat.total);
+      
+      if (!significance.isSignificant) return;
+      
+      const counterData = {
+        championId: vsChampionId,
+        championName: championStats[vsChampionId]?.name || 'Unknown',
+        lane: lane,
+        matchupWinRate: winRate,
+        sampleSize: stat.total,
+        significance: significance.pValue,
+        counterStrength: this.classifyCounterStrength(winRate, stat.total, significance)
+      };
+      
+      if (winRate >= STRONG_COUNTER_THRESHOLD) {
+        championStats[championId]?.counterRelationships.strongCounters.push(counterData);
+      } else if (winRate >= COUNTER_THRESHOLD) {
+        championStats[championId]?.counterRelationships.counters.push(counterData);
+      }
+      
+      // 逆の関係も記録
+      if (winRate <= (1 - COUNTER_THRESHOLD)) {
+        const reverseCounterData = {
+          ...counterData,
+          championId: championId,
+          championName: championStats[championId]?.name || 'Unknown',
+          enemyWinRate: winRate,
+          matchupWinRate: 1 - winRate
+        };
+        championStats[vsChampionId]?.counterRelationships.counteredBy.push(reverseCounterData);
       }
     });
     
-    // 勝率とKDA平均計算（実データがある場合のみ上書き）
-    Object.keys(stats).forEach(championKey => {
-      const champion = stats[championKey];
-      if (champion.totalGames > 0) {
-        champion.winRate = (champion.wins / champion.totalGames * 100).toFixed(1);
-        champion.averageKDA.kills = (champion.averageKDA.kills / champion.totalGames).toFixed(1);
-        champion.averageKDA.deaths = (champion.averageKDA.deaths / champion.totalGames).toFixed(1);
-        champion.averageKDA.assists = (champion.averageKDA.assists / champion.totalGames).toFixed(1);
+    // 統計の最終計算
+    Object.values(championStats).forEach(champion => {
+      if (champion.overallStats.totalGames > 0) {
+        champion.overallStats.winRate = champion.overallStats.wins / champion.overallStats.totalGames;
+        champion.overallStats.isReliable = champion.overallStats.totalGames >= MIN_SAMPLE_SIZE;
       }
     });
+  }
+  
+  /**
+   * 統計的有意性計算
+   */
+  calculateStatisticalSignificance(winRate, sampleSize, baseWinRate = 0.5) {
+    const standardError = Math.sqrt((baseWinRate * (1 - baseWinRate)) / sampleSize);
+    const zScore = (winRate - baseWinRate) / standardError;
+    const pValue = 2 * (1 - this.normalCDF(Math.abs(zScore)));
     
-    return stats;
+    return {
+      isSignificant: pValue < 0.05,
+      pValue: pValue,
+      zScore: zScore
+    };
+  }
+  
+  /**
+   * 正規累積分布関数（近似）
+   */
+  normalCDF(x) {
+    return (1.0 + Math.sign(x) * Math.sqrt(1 - Math.exp(-2 * x * x / Math.PI))) / 2.0;
+  }
+  
+  /**
+   * カウンター強度分類
+   */
+  classifyCounterStrength(winRate, sampleSize, significance) {
+    if (!significance.isSignificant || sampleSize < 30) {
+      return 'INSUFFICIENT_DATA';
+    }
+    
+    const winRateDiff = Math.abs(winRate - 0.5);
+    
+    if (winRateDiff >= 0.15) return 'HARD_COUNTER';
+    if (winRateDiff >= 0.10) return 'STRONG_COUNTER';
+    if (winRateDiff >= 0.06) return 'SOFT_COUNTER';
+    
+    return 'NEUTRAL';
+  }
+  
+  /**
+   * 最終統計計算
+   */
+  calculateFinalStats(processedCounters, champions) {
+    return processedCounters;
+  }
+  
+  /**
+   * サンプルカウンターデータ生成（開発用）
+   */
+  generateSampleCounters(champions) {
+    const sampleCounters = {};
+    
+    Object.keys(champions).forEach(champKey => {
+      const champion = champions[champKey];
+      sampleCounters[champion.id] = {
+        id: champion.id,
+        name: champion.name,
+        key: champion.key,
+        overallStats: {
+          totalGames: 150,
+          wins: 75,
+          winRate: 0.5,
+          isReliable: true
+        },
+        counterRelationships: {
+          strongCounters: this.generateCounterData(champion).strongAgainst.slice(0, 2).map(name => ({
+            championId: '1',
+            championName: name,
+            lane: 'MIDDLE',
+            matchupWinRate: 0.67,
+            sampleSize: 89,
+            significance: 0.02,
+            counterStrength: 'STRONG_COUNTER'
+          })),
+          counters: [],
+          counteredBy: []
+        },
+        lanePerformance: {
+          TOP: { winRate: 0.52, playRate: 0.8, games: 120 }
+        }
+      };
+    });
+    
+    return sampleCounters;
   }
 
   /**
