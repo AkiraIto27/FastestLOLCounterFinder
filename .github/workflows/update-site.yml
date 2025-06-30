@@ -35,10 +35,17 @@ env:
   CACHE_DIR: './data'
   
 jobs:
-  # Job 1: True Static-Firstビルド
-  build-counter-data:
+  # 統合Job: cache.json更新→HTML再生成→デプロイ→cache.jsonコミット
+  build-and-deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      pages: write
+      id-token: write
+      contents: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     
     outputs:
       pages-generated: ${{ steps.build-stats.outputs.pages }}
@@ -192,379 +199,96 @@ jobs:
           images/summoner
         key: fastest-lol-v2-${{ hashFiles('data/cache.json') }}-${{ hashFiles('package-lock.json') }}
     
-    - name: Commit updated cache.json
-      if: steps.build-stats.outputs.success == 'true'
+    # 🚀 新しい統合フロー: cache.json変更検知→HTML即座再生成
+    - name: Detect cache.json changes and rebuild if needed
+      id: cache-check
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        echo "🔍 Checking cache.json changes..."
         
-        # cache.jsonが更新されている場合のみコミット
-        if [ -f "data/cache.json" ] && git diff --quiet data/cache.json; then
-          echo "📊 No changes in cache.json, skipping commit"
-        elif [ -f "data/cache.json" ]; then
-          echo "📊 Committing updated cache.json"
-          git add data/cache.json
-          git commit -m "🤖 Auto-update cache.json with latest match data
-
-Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-Matches analyzed: Updated counter statistics
-Architecture: True Static-First
-
-🚀 Generated with [Claude Code](https://claude.ai/code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
+        # cache.jsonの変更チェック
+        if [ -f "data/cache.json" ] && ! git diff --quiet data/cache.json; then
+          echo "📊 cache.json has been updated - triggering HTML regeneration"
+          echo "cache-updated=true" >> $GITHUB_OUTPUT
           
-          git push || {
-            echo "❌ Failed to push cache.json update"
-            exit 1
-          }
-          echo "✅ cache.json successfully pushed to repository"
+          # HTMLファイルを即座に再生成
+          echo "🔄 Regenerating HTML with updated cache.json..."
+          if [ "${{ inputs.build_type }}" == "dev" ]; then
+            npm run build:dev
+          else
+            npm run build:prod
+          fi
+          
+          echo "✅ HTML regeneration completed with latest cache.json"
         else
-          echo "⚠️ cache.json not found, skipping commit"
+          echo "📊 No cache.json changes detected"
+          echo "cache-updated=false" >> $GITHUB_OUTPUT
         fi
-
-  # Job 2: デプロイメント
-  deploy-to-pages:
-    runs-on: ubuntu-latest
-    needs: build-counter-data
-    if: needs.build-counter-data.outputs.build-success == 'true' && github.ref == 'refs/heads/main'
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: 🔍 Debug Phase 1 - Initial state after checkout
-      run: |
-        echo "=============================================="
-        echo "🔍 DEBUG: Initial state after checkout"
-        echo "=============================================="
-        echo "📂 Current working directory:"
-        pwd
-        echo ""
-        echo "📂 Directory contents (detailed):"
-        ls -la
-        echo ""
-        echo "📂 Root files only:"
-        ls -1 *.* 2>/dev/null || echo "No root files found"
-        echo ""
-        echo "🔀 Git repository status:"
-        git status || echo "❌ Git command failed"
-        echo ""
-        echo "📁 .git directory check:"
-        if [ -d ".git" ]; then
-          echo "✅ .git directory exists"
-          ls -la .git/ | head -10
-        else
-          echo "❌ .git directory missing"
-        fi
-        echo ""
-        echo "🌿 Git branch info:"
-        git branch -a 2>/dev/null || echo "❌ Git branch command failed"
-        echo ""
-        echo "📊 Disk usage:"
-        du -sh * .* 2>/dev/null || true
-        echo "=============================================="
-    
-    - name: Restore build cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          data/cache.json
-          images/champion
-          images/item
-          images/summoner
-        key: fastest-lol-v2-${{ hashFiles('data/cache.json') }}-${{ hashFiles('package-lock.json') }}
-        restore-keys: |
-          fastest-lol-v2-
-    
-    - name: 🔍 Debug Phase 2 - State after cache restore
-      run: |
-        echo "=============================================="
-        echo "🔍 DEBUG: State after cache restore"
-        echo "=============================================="
-        echo "📂 Directory contents after cache:"
-        ls -la
-        echo ""
-        echo "📁 Cache directories check:"
-        echo "data/ contents:"
-        ls -la data/ 2>/dev/null || echo "data/ directory not found"
-        echo ""
-        echo "images/ contents:"
-        ls -la images/ 2>/dev/null || echo "images/ directory not found"
-        echo ""
-        echo "🔀 Git status after cache restore:"
-        git status || echo "❌ Git command failed after cache"
-        echo ""
-        echo "📊 Files that should exist for deployment:"
-        echo "index.html: $(test -f index.html && echo '✅ EXISTS' || echo '❌ MISSING')"
-        echo "sw.js: $(test -f sw.js && echo '✅ EXISTS' || echo '❌ MISSING')"
-        echo "manifest.json: $(test -f manifest.json && echo '✅ EXISTS' || echo '❌ MISSING')"
-        echo "=============================================="
-    
-    - name: 🔍 Debug Phase 3 - Pre-build environment check
-      run: |
-        echo "=============================================="
-        echo "🔍 DEBUG: Pre-build environment"
-        echo "=============================================="
-        echo "🌍 Environment variables:"
-        echo "RIOT_API_KEY: $(test -n '${{ secrets.RIOT_API_KEY }}' && echo 'SET' || echo 'NOT SET')"
-        echo "TARGET_REGION: ${{ env.TARGET_REGION }}"
-        echo "ACCOUNT_REGION: ${{ env.ACCOUNT_REGION }}"
-        echo "OUTPUT_DIR: ${{ env.OUTPUT_DIR }}"
-        echo "CACHE_DIR: ${{ env.CACHE_DIR }}"
-        echo "BUILD_TYPE: ${{ inputs.build_type }}"
-        echo ""
-        echo "📦 Node.js/npm info:"
-        node --version
-        npm --version
-        echo ""
-        echo "📜 package.json scripts:"
-        cat package.json | grep -A 10 '"scripts"' || echo "package.json not found"
-        echo ""
-        echo "🔀 Git status before build:"
-        git status || echo "❌ Git command failed before build"
-        echo "=============================================="
-    
-    - name: Quick rebuild for deployment
-      env:
-        RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
-        TARGET_REGION: ${{ env.TARGET_REGION }}
-        ACCOUNT_REGION: ${{ env.ACCOUNT_REGION }}
-        OUTPUT_DIR: ${{ env.OUTPUT_DIR }}
-        CACHE_DIR: ${{ env.CACHE_DIR }}
-        DEBUG_MODE: false
-      run: |
-        echo "=============================================="
-        echo "🚀 Starting build process..."
-        echo "=============================================="
-        
-        # ビルド前の状態確認
-        echo "📂 Pre-build directory state:"
-        ls -la
-        echo ""
-        
-        # ビルドコマンド実行
-        if [ "${{ inputs.build_type }}" == "dev" ]; then
-          echo "🔨 Executing: npm run build:dev"
-          npm run build:dev || {
-            echo "❌ Build:dev failed with exit code $?"
-            echo "📂 Directory state after failed build:"
-            ls -la
-            exit 1
-          }
-        else
-          echo "🔨 Executing: npm run build:prod"
-          npm run build:prod || {
-            echo "❌ Build:prod failed with exit code $?"
-            echo "📂 Directory state after failed build:"
-            ls -la
-            exit 1
-          }
-        fi
-        
-        echo "✅ Build process completed"
-        echo "=============================================="
-    
-    - name: 🔍 Debug Phase 4 - Post-build state analysis
-      run: |
-        echo "=============================================="
-        echo "🔍 DEBUG: Post-build state analysis"
-        echo "=============================================="
-        echo "📂 Directory contents after build:"
-        ls -la
-        echo ""
-        echo "📊 Critical files status:"
-        echo "index.html: $(test -f index.html && echo '✅ EXISTS' || echo '❌ MISSING')"
-        echo "sw.js: $(test -f sw.js && echo '✅ EXISTS' || echo '❌ MISSING')"
-        echo "manifest.json: $(test -f manifest.json && echo '✅ EXISTS' || echo '❌ MISSING')"
-        echo ""
-        echo "📏 File sizes:"
-        if [ -f index.html ]; then
-          echo "index.html: $(wc -c < index.html) bytes"
-        fi
-        if [ -f sw.js ]; then
-          echo "sw.js: $(wc -c < sw.js) bytes"
-        fi
-        if [ -f manifest.json ]; then
-          echo "manifest.json: $(wc -c < manifest.json) bytes"
-        fi
-        echo ""
-        echo "🔀 Git status after build:"
-        git status || echo "❌ Git command failed after build"
-        echo ""
-        echo "📁 .git directory check after build:"
-        if [ -d ".git" ]; then
-          echo "✅ .git directory still exists"
-        else
-          echo "❌ .git directory disappeared after build!"
-        fi
-        echo ""
-        echo "📂 HTML files generated:"
-        find . -maxdepth 1 -name "*.html" | head -5
-        echo ""
-        echo "🖼️ Images directory:"
-        ls -la images/ 2>/dev/null | head -5 || echo "images/ directory not found"
-        echo "=============================================="
-    
-    - name: 🔍 Debug Phase 5 - Pre-deployment final check
-      run: |
-        echo "=============================================="
-        echo "🔍 DEBUG: Pre-deployment final check"
-        echo "=============================================="
-        echo "🌍 Current working directory:"
-        pwd
-        echo ""
-        echo "📂 Final directory listing:"
-        ls -la
-        echo ""
-        echo "🔀 Final Git status:"
-        git status || echo "❌ CRITICAL: Git command failed before deployment!"
-        echo ""
-        echo "📁 .git directory final check:"
-        if [ -d ".git" ]; then
-          echo "✅ .git directory exists for deployment"
-          echo "Git remote configuration:"
-          git remote -v 2>/dev/null || echo "No remotes configured"
-        else
-          echo "❌ CRITICAL: .git directory missing before deployment!"
-          echo "This will cause the deployment to fail!"
-        fi
-        echo ""
-        echo "📊 Ready for deployment:"
-        READY=true
-        if [ ! -f "index.html" ]; then
-          echo "❌ index.html missing"
-          READY=false
-        fi
-        if [ ! -d ".git" ]; then
-          echo "❌ .git directory missing"
-          READY=false
-        fi
-        if [ "$READY" = true ]; then
-          echo "✅ All prerequisites met for deployment"
-        else
-          echo "❌ Deployment prerequisites NOT met"
-        fi
-        echo "=============================================="
-    
-    - name: 🔍 Debug Phase 6 - Deploy action diagnostics
-      run: |
-        echo "=============================================="
-        echo "🔍 DEBUG: Deploy action diagnostics"
-        echo "=============================================="
-        echo "📊 peaceiris/actions-gh-pages@v3 requirements check:"
-        echo ""
-        echo "1. GitHub token: $(test -n '${{ secrets.GITHUB_TOKEN }}' && echo '✅ SET' || echo '❌ NOT SET')"
-        echo "2. Publish directory (.): $(test -d '.' && echo '✅ EXISTS' || echo '❌ MISSING')"
-        echo "3. Git repository: $(test -d '.git' && echo '✅ EXISTS' || echo '❌ MISSING - THIS WILL FAIL')"
-        echo "4. Required files in publish_dir:"
-        echo "   - index.html: $(test -f './index.html' && echo '✅ EXISTS' || echo '❌ MISSING')"
-        echo "   - Other HTML files: $(find . -maxdepth 1 -name '*.html' | wc -l) files"
-        echo ""
-        echo "🚫 Files to be excluded from deployment:"
-        echo "node_modules/: $(test -d 'node_modules' && echo 'EXISTS (will exclude)' || echo 'NOT FOUND')"
-        echo "src/: $(test -d 'src' && echo 'EXISTS (will exclude)' || echo 'NOT FOUND')"
-        echo ".env*: $(ls .env* 2>/dev/null | wc -l) files (will exclude)"
-        echo ".git*: $(ls .git* 2>/dev/null | wc -l) files (will exclude)"
-        echo "*.md: $(ls *.md 2>/dev/null | wc -l) files (will exclude)"
-        echo "package*.json: $(ls package*.json 2>/dev/null | wc -l) files (will exclude)"
-        echo "data/: $(test -d 'data' && echo 'EXISTS (will exclude)' || echo 'NOT FOUND')"
-        echo "templates/: $(test -d 'templates' && echo 'EXISTS (will exclude)' || echo 'NOT FOUND')"
-        echo ".github/: $(test -d '.github' && echo 'EXISTS (will exclude)' || echo 'NOT FOUND')"
-        echo ""
-        echo "📂 Final files to be deployed:"
-        # Simulate the exclusion logic
-        find . -maxdepth 2 -type f \
-          ! -path './node_modules/*' \
-          ! -path './src/*' \
-          ! -path './.env*' \
-          ! -path './.git*' \
-          ! -name '*.md' \
-          ! -name 'package*.json' \
-          ! -path './data/*' \
-          ! -path './templates/*' \
-          ! -path './.github/*' \
-          | head -10
-        echo "... (showing first 10 files)"
-        echo "=============================================="
-    
+    # 🚀 統合デプロイメント: 最新HTMLを即座にデプロイ
     - name: Setup Pages
+      if: steps.build-stats.outputs.success == 'true'
       uses: actions/configure-pages@v4
     
     - name: Upload Pages artifact
+      if: steps.build-stats.outputs.success == 'true'
       uses: actions/upload-pages-artifact@v3
       with:
         path: .
     
     - name: Deploy to GitHub Pages
+      if: steps.build-stats.outputs.success == 'true'
       id: deployment
       uses: actions/deploy-pages@v4
+    
+    # 🚀 最後にcache.jsonをコミット（デプロイ後）
+    - name: Commit updated cache.json
+      if: steps.build-stats.outputs.success == 'true' && steps.cache-check.outputs.cache-updated == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        echo "📊 Committing updated cache.json after successful deployment"
+        git add data/cache.json
+        git commit -m "🤖 Auto-update cache.json with latest match data
 
-  # Job 3: 通知とメトリクス
+Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+Matches analyzed: Updated counter statistics
+Architecture: True Static-First
+Deployed: ${{ steps.deployment.outputs.page_url }}
+
+🚀 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+        
+        git push || {
+          echo "❌ Failed to push cache.json update"
+          exit 1
+        }
+        echo "✅ cache.json successfully committed after deployment"
+
+  # 通知とメトリクス（統合Job実行後）
   notify-completion:
     runs-on: ubuntu-latest
-    needs: [build-counter-data, deploy-to-pages]
+    needs: build-and-deploy
     if: always()
     
     steps:
-    - name: 🔍 Debug Phase 7 - Final workflow state
-      run: |
-        echo "=============================================="
-        echo "🔍 DEBUG: Final workflow state summary"
-        echo "=============================================="
-        echo "📊 Job Results Summary:"
-        echo "build-counter-data: ${{ needs.build-counter-data.result }}"
-        echo "deploy-to-pages: ${{ needs.deploy-to-pages.result }}"
-        echo ""
-        echo "📈 Job Outputs (if available):"
-        echo "pages-generated: ${{ needs.build-counter-data.outputs.pages-generated }}"
-        echo "build-success: ${{ needs.build-counter-data.outputs.build-success }}"
-        echo "data-quality: ${{ needs.build-counter-data.outputs.data-quality }}"
-        echo ""
-        echo "🔍 Deployment Analysis:"
-        if [ "${{ needs.deploy-to-pages.result }}" == "failure" ]; then
-          echo "❌ DEPLOYMENT FAILED - This indicates the root cause was identified"
-          echo "   Check the debug phases above to see where the problem occurred"
-        elif [ "${{ needs.deploy-to-pages.result }}" == "success" ]; then
-          echo "✅ DEPLOYMENT SUCCEEDED - Issue was resolved by debug investigation"
-        else
-          echo "⚠️ DEPLOYMENT STATUS: ${{ needs.deploy-to-pages.result }}"
-        fi
-        echo "=============================================="
-    
     - name: Build Status Notification
       run: |
         echo "📢 FastestLOL Auto-Update Status Report"
         echo "==========================================="
         
-        if [ "${{ needs.build-counter-data.result }}" == "success" ] && [ "${{ needs.deploy-to-pages.result }}" == "success" ]; then
+        if [ "${{ needs.build-and-deploy.result }}" == "success" ]; then
           echo "✅ Status: SUCCESS - Site updated successfully!"
           echo "🌍 Live URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
           echo ""
           echo "📊 Build Metrics:"
-          echo "  • Total Pages: ${{ needs.build-counter-data.outputs.pages-generated }}"
-          echo "  • Listing Pages: ${{ needs.build-counter-data.outputs.listing-pages }}"
-          echo "  • Detail Pages: ${{ needs.build-counter-data.outputs.detail-pages }}"
-          echo "  • Data Quality: ${{ needs.build-counter-data.outputs.data-quality }}"
-          echo "  • Index Size: ${{ needs.build-counter-data.outputs.index-size }} bytes"
-          echo "  • Champion Images: ${{ needs.build-counter-data.outputs.champion-images }}"
+          echo "  • Total Pages: ${{ needs.build-and-deploy.outputs.pages-generated }}"
+          echo "  • Listing Pages: ${{ needs.build-and-deploy.outputs.listing-pages }}"
+          echo "  • Detail Pages: ${{ needs.build-and-deploy.outputs.detail-pages }}"
+          echo "  • Data Quality: ${{ needs.build-and-deploy.outputs.data-quality }}"
+          echo "  • Index Size: ${{ needs.build-and-deploy.outputs.index-size }} bytes"
+          echo "  • Champion Images: ${{ needs.build-and-deploy.outputs.champion-images }}"
           echo ""
           echo "🏗️ Architecture: True Static-First"
           echo "🚀 Performance: Cache-First + Zero-JS + Zero-CSS"
@@ -572,48 +296,28 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
           echo ""
           echo "🕰️ Next Update: 6 hours"
           
-        elif [ "${{ needs.build-counter-data.result }}" == "failure" ]; then
-          echo "❌ Status: BUILD FAILED"
-          echo "  • Issue: Counter data generation failed"
+        else
+          echo "❌ Status: WORKFLOW FAILED"
+          echo "  • Build Result: ${{ needs.build-and-deploy.result }}"
           echo "  • Possible causes:"
           echo "    - API key expired or invalid"
           echo "    - Rate limit exceeded"
           echo "    - Network issues accessing Riot API"
           echo "    - Data processing errors"
-          echo "  • Action: Review build logs above"
-          
-        elif [ "${{ needs.deploy-to-pages.result }}" == "failure" ]; then
-          echo "❌ Status: DEPLOYMENT FAILED"
-          echo "  • Issue: GitHub Pages deployment failed"
-          echo "  • Possible causes:"
-          echo "    - Repository settings misconfigured"
-          echo "    - GitHub Pages disabled"
-          echo "    - Permission issues"
-          echo "  • Action: Check repository settings > Pages"
-          
-        elif [ "${{ needs.deploy-to-pages.result }}" == "skipped" ]; then
-          echo "⚠️ Status: BUILD SUCCESS, DEPLOYMENT SKIPPED"
-          echo "  • Reason: Build failed quality checks"
-          echo "  • Build Quality: ${{ needs.build-counter-data.outputs.data-quality }}"
-          echo "  • Action: Check build validation logs"
-          
-        else
-          echo "⚠️ Status: PARTIAL SUCCESS"
-          echo "  • Build: ${{ needs.build-counter-data.result }}"
-          echo "  • Deploy: ${{ needs.deploy-to-pages.result }}"
-          echo "  • Action: Check individual job logs"
+          echo "    - GitHub Pages deployment issues"
+          echo "  • Action: Review build logs for details"
         fi
         
         echo "==========================================="
     
     - name: Performance Audit Report
-      if: needs.build-counter-data.result == 'success'
+      if: needs.build-and-deploy.result == 'success'
       run: |
         echo "🚀 True Static-First Performance Audit"
         echo "========================================"
         
         # サイズ評価
-        INDEX_SIZE="${{ needs.build-counter-data.outputs.index-size }}"
+        INDEX_SIZE="${{ needs.build-and-deploy.outputs.index-size }}"
         if [ "$INDEX_SIZE" -lt 200000 ]; then
           SIZE_RATING="🟢 Excellent"
         elif [ "$INDEX_SIZE" -lt 300000 ]; then
@@ -623,7 +327,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
         fi
         
         # データ品質評価
-        QUALITY="${{ needs.build-counter-data.outputs.data-quality }}"
+        QUALITY="${{ needs.build-and-deploy.outputs.data-quality }}"
         case $QUALITY in
           "high")   QUALITY_ICON="🟢 High Quality" ;;
           "medium") QUALITY_ICON="🟡 Medium Quality" ;;
@@ -631,9 +335,9 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
           *)        QUALITY_ICON="❓ Unknown" ;;
         esac
         
-        echo "📄 Pages: ${{ needs.build-counter-data.outputs.pages-generated }} total"
+        echo "📄 Pages: ${{ needs.build-and-deploy.outputs.pages-generated }} total"
         echo "💾 Index Size: ${INDEX_SIZE} bytes ($SIZE_RATING)"
-        echo "🖼️ Images: ${{ needs.build-counter-data.outputs.champion-images }} champion portraits"
+        echo "🖼️ Images: ${{ needs.build-and-deploy.outputs.champion-images }} champion portraits"
         echo "📊 Data Quality: $QUALITY_ICON"
         echo "⚙️ Service Worker: Complete offline support"
         echo "🚀 Estimated Metrics:"
@@ -644,12 +348,3 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
         echo "💾 Zero JS/CSS: Pure HTML tables only"
         echo "🌐 CDN Ready: Full static deployment"
         echo "========================================"
-        
-    - name: Update README Badge
-      if: needs.build-counter-data.result == 'success' && needs.deploy-to-pages.result == 'success'
-      run: |
-        echo "🏷️ Updating status badges..."
-        echo "Build Status: ✅ SUCCESS"
-        echo "Last Updated: $(date -u +"%Y-%m-%d %H:%M UTC")"
-        echo "Pages Generated: ${{ needs.build-counter-data.outputs.pages-generated }}"
-        echo "Data Quality: ${{ needs.build-counter-data.outputs.data-quality }}"
