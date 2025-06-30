@@ -16,9 +16,9 @@ yarn-error.log*
 # Completely exclude dist/ since we use root deployment
 dist/
 
-# Data cache - KEEP structure but exclude dynamic content
-data/cache.json
+# Data cache - KEEP structure and track cache.json for dev/prod sync
 data/*.json
+!data/cache.json
 !data/.gitkeep
 
 # ROOT DEPLOYMENT: Essential static site files are in project root:

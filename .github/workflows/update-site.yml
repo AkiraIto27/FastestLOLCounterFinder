@@ -191,6 +191,37 @@ jobs:
           images/item
           images/summoner
         key: fastest-lol-v2-${{ hashFiles('data/cache.json') }}-${{ hashFiles('package-lock.json') }}
+    
+    - name: Commit updated cache.json
+      if: steps.build-stats.outputs.success == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # cache.jsonが更新されている場合のみコミット
+        if [ -f "data/cache.json" ] && git diff --quiet data/cache.json; then
+          echo "📊 No changes in cache.json, skipping commit"
+        elif [ -f "data/cache.json" ]; then
+          echo "📊 Committing updated cache.json"
+          git add data/cache.json
+          git commit -m "🤖 Auto-update cache.json with latest match data
+
+Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+Matches analyzed: Updated counter statistics
+Architecture: True Static-First
+
+🚀 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+          
+          git push || {
+            echo "❌ Failed to push cache.json update"
+            exit 1
+          }
+          echo "✅ cache.json successfully pushed to repository"
+        else
+          echo "⚠️ cache.json not found, skipping commit"
+        fi
 
   # Job 2: デプロイメント
   deploy-to-pages:
