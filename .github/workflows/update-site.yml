@@ -74,10 +74,10 @@ jobs:
     - name: Verify API key configuration
       run: |
         if [ -z "${{ secrets.RIOT_API_KEY }}" ]; then
-          echo "❌ RIOT_API_KEY secret is not configured"
+          echo "RIOT_API_KEY secret is not configured"
           exit 1
         fi
-        echo "✅ API key configured"
+        echo "API key configured"
     
     - name: Restore build cache
       if: ${{ !inputs.force_rebuild }}
@@ -100,7 +100,7 @@ jobs:
         ACCOUNT_REGION: ${{ env.ACCOUNT_REGION }}
       run: |
         npm run verify-api-key || {
-          echo "❌ API key verification failed"
+          echo "API key verification failed"
           exit 1
         }
     
@@ -117,7 +117,7 @@ jobs:
         DEBUG_MODE: false
         VERBOSE_LOGGING: true
       run: |
-        echo "🚀 Starting True Static-First build..."
+        echo "Starting True Static-First build..."
         
         # 本番ビルド実行（完全カウンター情報生成）
         if [ "${{ inputs.build_type }}" == "dev" ]; then
@@ -126,18 +126,18 @@ jobs:
           npm run build:prod
         fi
         
-        echo "✅ Build completed successfully!"
+        echo "Build completed successfully!"
     
     - name: Validate True Static-First Architecture
       id: build-stats
       run: |
-        echo "🔍 Validating True Static-First architecture..."
+        echo "Validating True Static-First architecture..."
         
         # 必須ファイルの存在チェック
         REQUIRED_FILES=("index.html" "sw.js" "manifest.json")
         for file in "${REQUIRED_FILES[@]}"; do
           if [ ! -f "$file" ]; then
-            echo "❌ Critical file missing: $file"
+            echo "Critical file missing: $file"
             exit 1
           fi
         done
@@ -178,15 +178,15 @@ jobs:
         fi
         
         # 結果サマリ表示
-        echo "📊 True Static-First Build Statistics:"
-        echo "  📄 Total Pages Generated: $TOTAL_PAGES"
+        echo "True Static-First Build Statistics:"
+        echo "  Total Pages Generated: $TOTAL_PAGES"
         echo "    • Listing Pages: $LISTING_PAGES"
         echo "    • Detail Pages: $DETAIL_PAGES"
-        echo "  💾 Index.html Size: $INDEX_SIZE bytes"
-        echo "  ⚙️ Service Worker: $SW_SIZE bytes ($CACHED_FILES files cached)"
-        echo "  🖼️ Champion Images: $CHAMPION_IMAGES downloaded"
-        echo "  ✅ Architecture: True Static-First"
-        echo "  🚀 Performance: Cache-First + Zero-JS + Zero-CSS"
+        echo "  Index.html Size: $INDEX_SIZE bytes"
+        echo "  Service Worker: $SW_SIZE bytes ($CACHED_FILES files cached)"
+        echo "  Champion Images: $CHAMPION_IMAGES downloaded"
+        echo "  Architecture: True Static-First"
+        echo "  Performance: Cache-First + Zero-JS + Zero-CSS"
     
     - name: Save build cache
       if: steps.build-stats.outputs.success == 'true'
@@ -203,24 +203,24 @@ jobs:
     - name: Detect cache.json changes and rebuild if needed
       id: cache-check
       run: |
-        echo "🔍 Checking cache.json changes..."
+        echo "Checking cache.json changes..."
         
         # cache.jsonの変更チェック
         if [ -f "data/cache.json" ] && ! git diff --quiet data/cache.json; then
-          echo "📊 cache.json has been updated - triggering HTML regeneration"
+          echo "cache.json has been updated - triggering HTML regeneration"
           echo "cache-updated=true" >> $GITHUB_OUTPUT
           
           # HTMLファイルを即座に再生成
-          echo "🔄 Regenerating HTML with updated cache.json..."
+          echo "Regenerating HTML with updated cache.json..."
           if [ "${{ inputs.build_type }}" == "dev" ]; then
             npm run build:dev
           else
             npm run build:prod
           fi
           
-          echo "✅ HTML regeneration completed with latest cache.json"
+          echo "HTML regeneration completed with latest cache.json"
         else
-          echo "📊 No cache.json changes detected"
+          echo "No cache.json changes detected"
           echo "cache-updated=false" >> $GITHUB_OUTPUT
         fi
     
@@ -247,27 +247,26 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         
-        echo "📊 Committing updated cache.json after successful deployment"
+        echo "Committing updated cache.json after successful deployment"
         git add data/cache.json
-        git commit -m "$(cat <<'EOF'
-🤖 Auto-update cache.json with latest match data
+        cat << EOF | git commit -F -
+Auto-update cache.json with latest match data
 
 Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
 Matches analyzed: Updated counter statistics
 Architecture: True Static-First
 Deployed: ${{ steps.deployment.outputs.page_url }}
 
-🚀 Generated with Claude Code
+Generated with Claude Code
 
 Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
-)"
         
         git push || {
-          echo "❌ Failed to push cache.json update"
+          echo "Failed to push cache.json update"
           exit 1
         }
-        echo "✅ cache.json successfully committed after deployment"
+        echo "cache.json successfully committed after deployment"
 
   # 通知とメトリクス（統合Job実行後）
   notify-completion:
@@ -278,14 +277,14 @@ EOF
     steps:
     - name: Build Status Notification
       run: |
-        echo "📢 FastestLOL Auto-Update Status Report"
+        echo "FastestLOL Auto-Update Status Report"
         echo "==========================================="
         
         if [ "${{ needs.build-and-deploy.result }}" == "success" ]; then
-          echo "✅ Status: SUCCESS - Site updated successfully!"
-          echo "🌍 Live URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          echo "Status: SUCCESS - Site updated successfully!"
+          echo "Live URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
           echo ""
-          echo "📊 Build Metrics:"
+          echo "Build Metrics:"
           echo "  • Total Pages: ${{ needs.build-and-deploy.outputs.pages-generated }}"
           echo "  • Listing Pages: ${{ needs.build-and-deploy.outputs.listing-pages }}"
           echo "  • Detail Pages: ${{ needs.build-and-deploy.outputs.detail-pages }}"
@@ -293,14 +292,14 @@ EOF
           echo "  • Index Size: ${{ needs.build-and-deploy.outputs.index-size }} bytes"
           echo "  • Champion Images: ${{ needs.build-and-deploy.outputs.champion-images }}"
           echo ""
-          echo "🏗️ Architecture: True Static-First"
-          echo "🚀 Performance: Cache-First + Zero-JS + Zero-CSS"
-          echo "⚡ Estimated First Paint: <100ms"
+          echo "Architecture: True Static-First"
+          echo "Performance: Cache-First + Zero-JS + Zero-CSS"
+          echo "Estimated First Paint: <100ms"
           echo ""
-          echo "🕰️ Next Update: 6 hours"
+          echo "Next Update: 6 hours"
           
         else
-          echo "❌ Status: WORKFLOW FAILED"
+          echo "Status: WORKFLOW FAILED"
           echo "  • Build Result: ${{ needs.build-and-deploy.result }}"
           echo "  • Possible causes:"
           echo "    - API key expired or invalid"
@@ -316,38 +315,38 @@ EOF
     - name: Performance Audit Report
       if: needs.build-and-deploy.result == 'success'
       run: |
-        echo "🚀 True Static-First Performance Audit"
+        echo "True Static-First Performance Audit"
         echo "========================================"
         
         # サイズ評価
         INDEX_SIZE="${{ needs.build-and-deploy.outputs.index-size }}"
         if [ "$INDEX_SIZE" -lt 200000 ]; then
-          SIZE_RATING="🟢 Excellent"
+          SIZE_RATING="Excellent"
         elif [ "$INDEX_SIZE" -lt 300000 ]; then
-          SIZE_RATING="🟡 Good"
+          SIZE_RATING="Good"
         else
-          SIZE_RATING="🔴 Needs Optimization"
+          SIZE_RATING="Needs Optimization"
         fi
         
         # データ品質評価
         QUALITY="${{ needs.build-and-deploy.outputs.data-quality }}"
         case $QUALITY in
-          "high")   QUALITY_ICON="🟢 High Quality" ;;
-          "medium") QUALITY_ICON="🟡 Medium Quality" ;;
-          "low")    QUALITY_ICON="🔴 Low Quality" ;;
-          *)        QUALITY_ICON="❓ Unknown" ;;
+          "high")   QUALITY_ICON="High Quality" ;;
+          "medium") QUALITY_ICON="Medium Quality" ;;
+          "low")    QUALITY_ICON="Low Quality" ;;
+          *)        QUALITY_ICON="Unknown" ;;
         esac
         
-        echo "📄 Pages: ${{ needs.build-and-deploy.outputs.pages-generated }} total"
-        echo "💾 Index Size: ${INDEX_SIZE} bytes ($SIZE_RATING)"
-        echo "🖼️ Images: ${{ needs.build-and-deploy.outputs.champion-images }} champion portraits"
-        echo "📊 Data Quality: $QUALITY_ICON"
-        echo "⚙️ Service Worker: Complete offline support"
-        echo "🚀 Estimated Metrics:"
+        echo "Pages: ${{ needs.build-and-deploy.outputs.pages-generated }} total"
+        echo "Index Size: ${INDEX_SIZE} bytes ($SIZE_RATING)"
+        echo "Images: ${{ needs.build-and-deploy.outputs.champion-images }} champion portraits"
+        echo "Data Quality: $QUALITY_ICON"
+        echo "Service Worker: Complete offline support"
+        echo "Estimated Metrics:"
         echo "   • First Paint: <100ms"
         echo "   • LCP: <200ms"
         echo "   • CLS: ~0.02"
         echo "   • TTI: <150ms"
-        echo "💾 Zero JS/CSS: Pure HTML tables only"
-        echo "🌐 CDN Ready: Full static deployment"
+        echo "Zero JS/CSS: Pure HTML tables only"
+        echo "CDN Ready: Full static deployment"
         echo "========================================"
