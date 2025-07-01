@@ -249,18 +249,16 @@ jobs:
         
         echo "Committing updated cache.json after successful deployment"
         git add data/cache.json
-        cat << EOF | git commit -F -
-Auto-update cache.json with latest match data
+        git commit -m "Auto-update cache.json with latest match data
 
-Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-Matches analyzed: Updated counter statistics
-Architecture: True Static-First
-Deployed: ${{ steps.deployment.outputs.page_url }}
+        Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        Matches analyzed: Updated counter statistics
+        Architecture: True Static-First
+        Deployed: ${{ steps.deployment.outputs.page_url }}
 
-Generated with Claude Code
+        Generated with Claude Code
 
-Co-Authored-By: Claude <noreply@anthropic.com>
-EOF
+        Co-Authored-By: Claude <noreply@anthropic.com>"
         
         git push || {
           echo "Failed to push cache.json update"
