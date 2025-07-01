@@ -1,0 +1,217 @@
+name: Update Data and Deploy to GitHub Pages
+
+on:
+  # 6時間ごとに自動実行 (UTC時間)
+  schedule:
+    - cron: '0 */6 * * *'  # 00:00, 06:00, 12:00, 18:00 UTC
+  
+  # 手動実行も可能にする
+  workflow_dispatch:
+    inputs:
+      force_full_update:
+        description: 'Force full data refresh (ignore cache)'
+        required: false
+        default: 'false'
+        type: boolean
+
+# 同時実行を防ぐ（データ更新の競合を避ける）
+concurrency:
+  group: data-update
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6時間のタイムアウト設定
+    
+    steps:
+      # Phase 1: 環境準備
+      - name: 📂 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # 既存のcache.jsonを保持するためにfetch-depth: 0
+          fetch-depth: 0
+
+      - name: 📊 Debug - Repository state check
+        run: |
+          echo "=== Repository State ==="
+          pwd
+          ls -la
+          echo "=== .git directory check ==="
+          ls -la .git/ || echo "No .git directory found"
+          echo "=== data directory check ==="
+          ls -la data/ || echo "No data directory found"
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: |
+          echo "=== Installing dependencies ==="
+          npm ci
+          echo "=== Dependency installation completed ==="
+
+      # Phase 2: 既存キャッシュのバックアップ
+      - name: 💾 Backup existing cache
+        run: |
+          echo "=== Backup existing cache ==="
+          if [ -f "data/cache.json" ]; then
+            cp data/cache.json data/cache.backup.json
+            echo "✅ Existing cache backed up"
+            echo "Cache file size: $(du -h data/cache.json)"
+          else
+            echo "⚠️ No existing cache found - first run"
+          fi
+
+      # Phase 3: ビルド実行
+      - name: 🚀 Run build script
+        env:
+          RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+          TARGET_REGION: jp1
+          ACCOUNT_REGION: asia
+          OUTPUT_DIR: .
+          CACHE_DIR: ./data
+          DEBUG_MODE: true
+          FORCE_UPDATE: ${{ github.event.inputs.force_full_update || 'false' }}
+        run: |
+          echo "=== Starting build process ==="
+          echo "Build started at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          
+          # API キーの存在確認（値は表示しない）
+          if [ -z "$RIOT_API_KEY" ]; then
+            echo "❌ ERROR: RIOT_API_KEY is not set"
+            exit 1
+          else
+            echo "✅ RIOT_API_KEY is configured"
+          fi
+          
+          # メモリ使用量監視開始
+          echo "=== System Resources ==="
+          free -h
+          df -h
+          
+          # ビルド実行
+          node src/build.js --prod
+          
+          echo "Build completed at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+
+      # Phase 4: ビルド結果の検証
+      - name: 🔍 Verify build results
+        run: |
+          echo "=== Build Verification ==="
+          
+          # 必須ファイルの存在確認
+          required_files=("index.html" "a-z.html" "z-a.html" "manifest.json" "sw.js" "data/cache.json")
+          
+          for file in "${required_files[@]}"; do
+            if [ -f "$file" ]; then
+              size=$(du -h "$file" | cut -f1)
+              echo "✅ $file exists (size: $size)"
+            else
+              echo "❌ Missing required file: $file"
+              exit 1
+            fi
+          done
+          
+          # HTMLファイル数確認
+          html_count=$(find . -maxdepth 1 -name "*.html" | wc -l)
+          echo "📄 Generated HTML files: $html_count"
+          
+          # 画像ディレクトリ確認
+          if [ -d "images" ]; then
+            image_count=$(find images -name "*.jpg" -o -name "*.png" | wc -l)
+            echo "🖼️ Downloaded images: $image_count"
+          fi
+          
+          # キャッシュファイルの詳細
+          if [ -f "data/cache.json" ]; then
+            echo "=== Cache File Analysis ==="
+            echo "Cache size: $(du -h data/cache.json)"
+            echo "Cache line count: $(wc -l < data/cache.json)"
+            
+            # JSONの妥当性確認
+            if node -e "JSON.parse(require('fs').readFileSync('data/cache.json', 'utf8')); console.log('✅ Cache JSON is valid')"; then
+              echo "✅ Cache file is valid JSON"
+            else
+              echo "❌ Cache file is invalid JSON"
+              exit 1
+            fi
+          fi
+
+      # Phase 5: GitHub Pages デプロイ
+      - name: 🚀 Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        if: success()  # ビルドが成功した場合のみデプロイ
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          exclude_assets: |
+            node_modules
+            src
+            templates
+            .env*
+            package*.json
+            *.md
+            data/cache.backup.json
+          force_orphan: true
+          enable_jekyll: false
+          commit_message: |
+            🤖 Auto-update: League of Legends counter data
+            
+            Updated at: ${{ steps.get-time.outputs.time }}
+            Triggered by: ${{ github.event_name }}
+            🔄 Data refresh completed successfully
+
+      # Phase 6: デプロイ後の通知とクリーンアップ
+      - name: 📝 Generate deployment summary
+        if: always()
+        run: |
+          echo "=== Deployment Summary ==="
+          echo "Workflow: ${{ github.workflow }}"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Triggered by: ${{ github.event_name }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment completed successfully"
+            echo "🌐 Site will be available at: https://${{ github.repository_owner }}.github.io/FastestLOLCounterFinder"
+          else
+            echo "❌ Deployment failed"
+            echo "Please check the logs above for error details"
+          fi
+          
+          # リソース使用量の最終確認
+          echo "=== Final System Resources ==="
+          free -h
+          df -h
+
+      # Phase 7: エラー時のデバッグ情報出力
+      - name: 🔧 Debug information on failure
+        if: failure()
+        run: |
+          echo "=== DEBUG INFORMATION ==="
+          echo "Working directory contents:"
+          ls -la
+          
+          echo "=== data directory contents ==="
+          ls -la data/ || echo "No data directory"
+          
+          echo "=== Logs from last 50 lines ==="
+          tail -50 /tmp/* 2>/dev/null || echo "No log files found"
+          
+          echo "=== Environment variables (masked) ==="
+          env | grep -E "(NODE|NPM|GITHUB)" | head -20
+          
+          echo "=== Process information ==="
+          ps aux | head -20
+          
+          # バックアップから復旧を試行
+          if [ -f "data/cache.backup.json" ]; then
+            echo "=== Attempting cache recovery ==="
+            cp data/cache.backup.json data/cache.json
+            echo "✅ Cache restored from backup"
+          fi

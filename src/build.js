@@ -30,12 +30,14 @@ config({ path: join(PROJECT_ROOT, '.env') });
 const BUILD_CONFIG = {
   isDev: process.argv.includes('--dev'),
   isProd: process.argv.includes('--prod'),
+  forceUpdate: process.env.FORCE_UPDATE === 'true',
   outputDir: process.env.OUTPUT_DIR || './dist',
   cacheDir: process.env.CACHE_DIR || './data',
   apiKey: process.env.RIOT_API_KEY,
   targetRegion: process.env.TARGET_REGION || 'jp1',
   accountRegion: process.env.ACCOUNT_REGION || 'asia',
-  debug: process.env.DEBUG_MODE === 'true'
+  debug: process.env.DEBUG_MODE === 'true',
+  safeMode: true // エラー時の安全な処理を有効化
 };
 
 /**
@@ -43,10 +45,15 @@ const BUILD_CONFIG = {
  */
 let buildStats = {
   startTime: Date.now(),
+  endTime: null,
+  duration: null,
   apiCalls: 0,
   htmlGenerated: 0,
   imagesDownloaded: 0,
-  totalSize: 0
+  totalSize: 0,
+  errors: [],
+  warnings: [],
+  cacheStatus: 'unknown'
 };
 
 /**
@@ -65,23 +72,49 @@ function log(level, message, ...args) {
  * ビルド前の検証
  */
 async function validateEnvironment() {
-  log('info', 'Environment validation started');
+  log('info', '=== Environment Validation Started ===');
   
+  // Critical: API key validation
   if (!BUILD_CONFIG.apiKey) {
-    throw new Error('RIOT_API_KEY environment variable is required');
+    const error = new Error('❌ RIOT_API_KEY environment variable is required');
+    buildStats.errors.push(error.message);
+    throw error;
+  }
+  log('info', '✅ RIOT_API_KEY is configured');
+  
+  // Directory creation with error handling
+  try {
+    const cacheDir = join(PROJECT_ROOT, BUILD_CONFIG.cacheDir);
+    if (!existsSync(cacheDir)) {
+      await fs.ensureDir(cacheDir);
+      log('info', `✅ Created cache directory: ${cacheDir}`);
+    } else {
+      log('info', `✅ Cache directory exists: ${cacheDir}`);
+    }
+    
+    const outputDir = join(PROJECT_ROOT, BUILD_CONFIG.outputDir);
+    if (!existsSync(outputDir)) {
+      await fs.ensureDir(outputDir);
+      log('info', `✅ Created output directory: ${outputDir}`);
+    } else {
+      log('info', `✅ Output directory exists: ${outputDir}`);
+    }
+  } catch (error) {
+    const errorMsg = `Failed to create directories: ${error.message}`;
+    buildStats.errors.push(errorMsg);
+    throw new Error(errorMsg);
   }
   
-  if (!existsSync(join(PROJECT_ROOT, BUILD_CONFIG.cacheDir))) {
-    await fs.ensureDir(join(PROJECT_ROOT, BUILD_CONFIG.cacheDir));
-    log('info', 'Created cache directory');
+  // System resources check
+  try {
+    const { execSync } = await import('child_process');
+    const memInfo = execSync('free -h 2>/dev/null || echo "Memory info not available"', { encoding: 'utf8' });
+    log('debug', `System memory: ${memInfo.split('\n')[1] || 'Unknown'}`);
+  } catch (error) {
+    log('warn', 'Could not check system resources');
   }
   
-  if (!existsSync(join(PROJECT_ROOT, BUILD_CONFIG.outputDir))) {
-    await fs.ensureDir(join(PROJECT_ROOT, BUILD_CONFIG.outputDir));
-    log('info', 'Created output directory');
-  }
-  
-  log('info', 'Environment validation completed');
+  log('info', '=== Environment Validation Completed ===');
 }
 
 /**
