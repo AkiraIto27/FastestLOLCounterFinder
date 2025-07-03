@@ -1,304 +1,238 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="League of Legends マークスマン カウンター情報 - 世界最高速度でカウンターピックを検索">
-    <meta name="keywords" content="LoL,League of Legends,チャンピオン,カウンター,カウンターピック,攻略,マークスマン">
-    <title>マークスマン カウンター - FastestLOLCounterFinder</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#e53e3e">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="マークスマン League of Legends カウンター情報 - 世界最速表示">
+<title>マークスマン - FastestLOL</title>
+<link rel="manifest" href="manifest.json">
 </head>
 <body>
-        <!-- ナビゲーション -->
-    <table width="100%" cellpadding="8" cellspacing="0" border="1" bordercolor="#ccc">
-        <tr>
-            <td><a href="index.html">A-Z順</a></td>
-            <td><a href="z-a.html">Z-A順</a></td>
-            <td><a href="category-assassin.html">アサシン</a></td>
-            <td><a href="category-fighter.html">ファイター</a></td>
-            <td><a href="category-mage.html">メイジ</a></td>
-            <td bgcolor="#e3f2fd"><a href="category-marksman.html">マークスマン</a></td>
-            <td><a href="category-support.html">サポート</a></td>
-            <td><a href="category-tank.html">タンク</a></td>
-        </tr>
-    </table>
-        <!-- ヘッダー -->
+<table width="100%" border="1">
+<tr>
+<td><a href="index.html">新着順</a></td>
+<td><a href="a-z.html">A-Z順</a></td>
+<td><a href="z-a.html">Z-A順</a></td>
+<td><a href="category-assassin.html">アサシン</a></td>
+<td><a href="category-fighter.html">ファイター</a></td>
+<td><a href="category-mage.html">メイジ</a></td>
+<td bgcolor="#e3f2fd"><a href="category-marksman.html">マークスマン</a></td>
+<td><a href="category-support.html">サポート</a></td>
+<td><a href="category-tank.html">タンク</a></td>
+</tr>
+</table>
+    <!-- ヘッダー -->
     <table width="100%" cellpadding="16" cellspacing="0" border="0">
         <tr>
             <td align="center">
                 <h1>⚡ FastestLOLCounterFinder</h1>
                 <h2>🛡️ マークスマン カウンター情報</h2>
-                <p><b>チャンピオン数: 32 | 最終更新: 2025/6/24 1:48:44</b></p>
+                <p><b>チャンピオン数: 32 | 最終更新: 2025/7/3 1:57:53</b></p>
                 <p><small>敵チャンピオンを選択して、カウンターピックを瞬時に確認しよう！</small></p>
             </td>
         </tr>
     </table>
-        <!-- カウンターチャンピオンテーブル -->
-    <table width="100%" cellpadding="8" cellspacing="0" border="1" bordercolor="#ddd">
-        <tr bgcolor="#f5f5f5">
-            <td width="80" align="center"><b>画像</b></td>
-            <td width="150"><b>チャンピオン名</b></td>
-            <td><b>カウンター関係</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">アク</div>
-      <img class="champion-image" src="images/champion/square/Akshan.png" alt="アクシャン" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>アクシャン</b></td>
-            <td>アクシャンが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">アジ</div>
-      <img class="champion-image" src="images/champion/square/Azir.png" alt="アジール" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>アジール</b></td>
-            <td>アジールが（←強い　弱い→） </br><b style="color:#2e7d32;">Kassadin, Yasuo, Katarina, Fizz, Zed</b>　<b style="color:#e53e3e;">Yasuo, Zed, Talon, Katarina, Kassadin</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">アッ</div>
-      <img class="champion-image" src="images/champion/square/Ashe.png" alt="アッシュ" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>アッシュ</b></td>
-            <td>アッシュが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">アフ</div>
-      <img class="champion-image" src="images/champion/square/Aphelios.png" alt="アフェリオス" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>アフェリオス</b></td>
-            <td>アフェリオスが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">ヴァ</div>
-      <img class="champion-image" src="images/champion/square/Varus.png" alt="ヴァルス" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>ヴァルス</b></td>
-            <td>ヴァルスが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">ヴェ</div>
-      <img class="champion-image" src="images/champion/square/Vayne.png" alt="ヴェイン" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>ヴェイン</b></td>
-            <td>ヴェインが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">エズ</div>
-      <img class="champion-image" src="images/champion/square/Ezreal.png" alt="エズリアル" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>エズリアル</b></td>
-            <td>エズリアルが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">カイ</div>
-      <img class="champion-image" src="images/champion/square/Kaisa.png" alt="カイ＝サ" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>カイ＝サ</b></td>
-            <td>カイ＝サが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">カリ</div>
-      <img class="champion-image" src="images/champion/square/Kalista.png" alt="カリスタ" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>カリスタ</b></td>
-            <td>カリスタが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">キン</div>
-      <img class="champion-image" src="images/champion/square/Kindred.png" alt="キンドレッド" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>キンドレッド</b></td>
-            <td>キンドレッドが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">クイ</div>
-      <img class="champion-image" src="images/champion/square/Quinn.png" alt="クイン" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>クイン</b></td>
-            <td>クインが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">グレ</div>
-      <img class="champion-image" src="images/champion/square/Graves.png" alt="グレイブス" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>グレイブス</b></td>
-            <td>グレイブスが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">ケイ</div>
-      <img class="champion-image" src="images/champion/square/Caitlyn.png" alt="ケイトリン" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>ケイトリン</b></td>
-            <td>ケイトリンが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">ケイ</div>
-      <img class="champion-image" src="images/champion/square/Kayle.png" alt="ケイル" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>ケイル</b></td>
-            <td>ケイルが（←強い　弱い→） </br><b style="color:#2e7d32;">Kassadin, Yasuo, Katarina, Fizz, Zed</b>　<b style="color:#e53e3e;">Yasuo, Zed, Talon, Katarina, Kassadin</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">コー</div>
-      <img class="champion-image" src="images/champion/square/Corki.png" alt="コーキ" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>コーキ</b></td>
-            <td>コーキが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">コグ</div>
-      <img class="champion-image" src="images/champion/square/KogMaw.png" alt="コグ＝マウ" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>コグ＝マウ</b></td>
-            <td>コグ＝マウが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">サミ</div>
-      <img class="champion-image" src="images/champion/square/Samira.png" alt="サミーラ" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>サミーラ</b></td>
-            <td>サミーラが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">ザヤ</div>
-      <img class="champion-image" src="images/champion/square/Xayah.png" alt="ザヤ" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>ザヤ</b></td>
-            <td>ザヤが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">シヴ</div>
-      <img class="champion-image" src="images/champion/square/Sivir.png" alt="シヴィア" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>シヴィア</b></td>
-            <td>シヴィアが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">ジェ</div>
-      <img class="champion-image" src="images/champion/square/Jayce.png" alt="ジェイス" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>ジェイス</b></td>
-            <td>ジェイスが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">ジン</div>
-      <img class="champion-image" src="images/champion/square/Jhin.png" alt="ジン" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>ジン</b></td>
-            <td>ジンが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">ジン</div>
-      <img class="champion-image" src="images/champion/square/Jinx.png" alt="ジンクス" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>ジンクス</b></td>
-            <td>ジンクスが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">スモ</div>
-      <img class="champion-image" src="images/champion/square/Smolder.png" alt="スモルダー" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>スモルダー</b></td>
-            <td>スモルダーが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">セナ</div>
-      <img class="champion-image" src="images/champion/square/Senna.png" alt="セナ" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>セナ</b></td>
-            <td>セナが（←強い　弱い→） </br><b style="color:#2e7d32;">Brand, Xerath, Vel'Koz, Zyra, Pyke</b>　<b style="color:#e53e3e;">Zed, Talon, Yasuo, Irelia, Camille</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">ゼリ</div>
-      <img class="champion-image" src="images/champion/square/Zeri.png" alt="ゼリ" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>ゼリ</b></td>
-            <td>ゼリが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">ツイ</div>
-      <img class="champion-image" src="images/champion/square/TwistedFate.png" alt="ツイステッド・フェイト" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>ツイステッド・フェイト</b></td>
-            <td>ツイステッド・フェイトが（←強い　弱い→） </br><b style="color:#2e7d32;">Kassadin, Yasuo, Katarina, Fizz, Zed</b>　<b style="color:#e53e3e;">Yasuo, Zed, Talon, Katarina, Kassadin</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">ティ</div>
-      <img class="champion-image" src="images/champion/square/Teemo.png" alt="ティーモ" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>ティーモ</b></td>
-            <td>ティーモが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">トゥ</div>
-      <img class="champion-image" src="images/champion/square/Twitch.png" alt="トゥイッチ" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>トゥイッチ</b></td>
-            <td>トゥイッチが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">トリ</div>
-      <img class="champion-image" src="images/champion/square/Tristana.png" alt="トリスターナ" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>トリスターナ</b></td>
-            <td>トリスターナが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">ドレ</div>
-      <img class="champion-image" src="images/champion/square/Draven.png" alt="ドレイヴン" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>ドレイヴン</b></td>
-            <td>ドレイヴンが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">ミス</div>
-      <img class="champion-image" src="images/champion/square/MissFortune.png" alt="ミス・フォーチュン" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>ミス・フォーチュン</b></td>
-            <td>ミス・フォーチュンが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-        <tr>
-            <td align="center"><div class="champion-image-container" style="width:60px;height:60px;position:relative;display:inline-block;">
-      <div class="champion-placeholder" style="width:60px;height:60px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666;">ルシ</div>
-      <img class="champion-image" src="images/champion/square/Lucian.png" alt="ルシアン" width="60" height="60" style="position:absolute;top:0;left:0;display:none;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
-    </div></td>
-            <td><b>ルシアン</b></td>
-            <td>ルシアンが（←強い　弱い→） </br><b style="color:#2e7d32;">Hecarim, Zed, Talon, Nocturne, Rengar</b>　<b style="color:#e53e3e;">Malphite, Rammus, Hecarim, Zed, Talon</b></td>
-        </tr>
-    </table>
-        <!-- フッター -->
+<table width="100%" border="1">
+<tr bgcolor="#f0f0f0">
+<td width="120"><b>チャンピオン</b></td>
+<td><b>勝率</b></td>
+<td><b>強いカウンター</b></td>
+<td><b>詳細</b></td>
+</tr>
+<tr>
+<td><b>アクシャン</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="akshan.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>アジール</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="azir.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>アッシュ</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="ashe.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>アフェリオス</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="aphelios.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>ヴァルス</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="varus.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>ヴェイン</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="vayne.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>エズリアル</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="ezreal.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>カイ＝サ</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="kaisa.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>カリスタ</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="kalista.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>キンドレッド</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="kindred.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>クイン</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="quinn.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>グレイブス</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="graves.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>ケイトリン</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="caitlyn.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>ケイル</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="kayle.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>コーキ</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="corki.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>コグ＝マウ</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="kogmaw.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>サミーラ</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="samira.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>ザヤ</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="xayah.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>シヴィア</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="sivir.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>ジェイス</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="jayce.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>ジン</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="jhin.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>ジンクス</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="jinx.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>スモルダー</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="smolder.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>セナ</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="senna.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>ゼリ</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="zeri.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>ツイステッド・フェイト</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="twistedfate.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>ティーモ</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="teemo.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>トゥイッチ</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="twitch.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>トリスターナ</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="tristana.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>ドレイヴン</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="draven.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>ミス・フォーチュン</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="missfortune.html">詳細</a></td>
+</tr>
+<tr>
+<td><b>ルシアン</b></td>
+<td>50.0%</td>
+<td>算出中</td>
+<td><a href="lucian.html">詳細</a></td>
+</tr>
+</table>
+    <!-- フッター -->
     <table width="100%" cellpadding="16" cellspacing="0" border="0">
         <tr>
             <td align="center">
@@ -306,9 +240,9 @@
                 <p>
                     <small>
                         FastestLOLCounterFinder | 
-                        Data Version: 15.12.1 | 
+                        Data Version: 15.13.1 | 
                         Region: JP1 | 
-                        Generated: 2025/6/24 1:50:23
+                        Generated: 2025/7/3 2:00:34
                     </small>
                 </p>
                 <p>
@@ -320,59 +254,10 @@
             </td>
         </tr>
     </table>
-        <!-- Service Worker登録（非同期実行） -->
-    <script>
-        // Service Worker登録（ページ読み込み完了後に非同期実行）
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', async () => {
-                try {
-                    const registration = await navigator.serviceWorker.register('/sw.js');
-                    console.log('SW registered:', registration.scope);
-                    
-                    // 更新チェック
-                    registration.addEventListener('updatefound', () => {
-                        const newWorker = registration.installing;
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                console.log('New version available. Refresh to update.');
-                            }
-                        });
-                    });
-                } catch (error) {
-                    console.error('SW registration failed:', error);
-                }
-            });
-        }
-
-        // 画像遅延読み込み最適化（表示速度に影響しない非同期処理）
-        document.addEventListener('DOMContentLoaded', () => {
-            // Intersection Observer APIを使用して可視領域内の画像のみ優先読み込み
-            if ('IntersectionObserver' in window) {
-                const imageObserver = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const img = entry.target.querySelector('.champion-image');
-                            if (img && !img.dataset.loaded) {
-                                img.dataset.loaded = 'true';
-                                // 画像が既に読み込まれていない場合のみ処理
-                                if (img.complete && img.naturalHeight !== 0) {
-                                    img.onload();
-                                }
-                            }
-                            imageObserver.unobserve(entry.target);
-                        }
-                    });
-                }, {
-                    rootMargin: '50px 0px', // 50px手前から読み込み開始
-                    threshold: 0.1
-                });
-
-                // 全てのチャンピオン画像コンテナを監視
-                document.querySelectorAll('.champion-image-container').forEach(container => {
-                    imageObserver.observe(container);
-                });
-            }
-        });
-    </script>
+<script>
+if('serviceWorker' in navigator){
+navigator.serviceWorker.register('sw.js');
+}
+</script>
 </body>
 </html>
