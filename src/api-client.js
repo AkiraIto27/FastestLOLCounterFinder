@@ -195,9 +195,19 @@ export class ApiClient {
         gameData.highEloPlayers = await this.getHighEloPlayers();
         this.log('info', `Found ${gameData.highEloPlayers.length} high ELO players`);
         
+        // Critical: Fail if no players found
+        if (gameData.highEloPlayers.length === 0) {
+          throw new Error('Failed to fetch high ELO players - API authentication or network issue');
+        }
+        
         // Phase 3: 試合履歴大量収集
         gameData.matchData = await this.collectRankedMatches(gameData.highEloPlayers);
         this.log('info', `Collected ${gameData.matchData.length} ranked matches`);
+        
+        // Critical: Fail if no matches collected
+        if (gameData.matchData.length === 0) {
+          throw new Error('Failed to collect match data - all API requests failed');
+        }
         
         // Phase 4: 対面データ処理
         gameData.rawMatchups = this.extractMatchupData(gameData.matchData);
@@ -309,6 +319,10 @@ export class ApiClient {
           const challengerUrl = `https://${this.targetRegion}.api.riotgames.com/lol/league/v4/challengerleagues/by-queue/${queue}`;
           const challengerData = await this.makeRequest(challengerUrl);
           
+          if (!challengerData || !challengerData.entries) {
+            throw new Error('Invalid response format: missing entries');
+          }
+          
           // 上位100名に拡大
           const topChallengers = challengerData.entries
             .sort((a, b) => b.leaguePoints - a.leaguePoints)
@@ -328,7 +342,8 @@ export class ApiClient {
           await this.sleep(1100);
           
         } catch (error) {
-          this.log('warn', 'Failed to fetch Challenger data:', error.message);
+          this.log('error', 'Failed to fetch Challenger data:', error.message);
+          throw new Error(`Challenger API failed: ${error.message}`);
         }
         
         // Grandmaster

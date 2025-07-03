@@ -46,7 +46,36 @@ jobs:
       - name: 📦 Install dependencies
         run: npm ci
 
-      # 2. ビルド実行
+      # 2. API キー検証
+      - name: 🔑 Verify API key
+        env:
+          RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+          TARGET_REGION: 'jp1'
+          DEBUG_MODE: true
+        run: |
+          echo "Verifying API key authentication..."
+          if [ -z "$RIOT_API_KEY" ]; then
+            echo "❌ RIOT_API_KEY is not set"
+            exit 1
+          fi
+          
+          # Test API connectivity with a simple request
+          response=$(curl -s -w "HTTP_STATUS:%{http_code}" \
+            -H "X-Riot-Token: $RIOT_API_KEY" \
+            "https://jp1.api.riotgames.com/lol/status/v4/platform-data")
+          
+          http_status=$(echo "$response" | grep -o "HTTP_STATUS:[0-9]*" | cut -d: -f2)
+          echo "API test response status: $http_status"
+          
+          if [ "$http_status" != "200" ]; then
+            echo "❌ API authentication failed (HTTP $http_status)"
+            echo "Response: $(echo "$response" | sed 's/HTTP_STATUS:[0-9]*//')"
+            exit 1
+          fi
+          
+          echo "✅ API key verified successfully"
+
+      # 3. ビルド実行
       - name: 🚀 Run build script
         env:
           RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
@@ -61,7 +90,7 @@ jobs:
           node src/build.js --prod
           echo "Build completed at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 
-      # 3. ビルド結果の検証
+      # 4. ビルド結果の検証
       - name: 🔍 Verify build results
         id: build-stats
         run: |
@@ -88,7 +117,7 @@ jobs:
           echo "  - HTML Pages: $HTML_COUNT"
           echo "  - Images: $IMAGE_COUNT"
 
-      # 4. cache.jsonとHTMLファイルの変更をコミット
+      # 5. cache.jsonとHTMLファイルの変更をコミット
       - name: 💾 Commit updated cache.json and HTML files
         id: commit-cache
         run: |
@@ -107,7 +136,7 @@ jobs:
             echo "commit-pushed=false" >> $GITHUB_OUTPUT
           fi
 
-      # 5. GitHub Pages へデプロイ
+      # 6. GitHub Pages へデプロイ
       - name: 🚀 Deploy to GitHub Pages
         if: steps.commit-cache.outputs.commit-pushed == 'true'
         uses: peaceiris/actions-gh-pages@v4
@@ -133,7 +162,7 @@ jobs:
             Pages Generated: ${{ steps.build-stats.outputs.pages-generated }}
             Images: ${{ steps.build-stats.outputs.images-downloaded }}
 
-      # 6. 完了通知
+      # 7. 完了通知
       - name: ✅ Post-run summary
         if: always()
         run: |
