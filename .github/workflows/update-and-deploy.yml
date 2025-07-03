@@ -1,46 +1,41 @@
 name: Update Data and Deploy to GitHub Pages
 
 on:
-  # 6時間ごとに自動実行 (UTC時間)
+  # 1日4回の自動実行（JST: 6:00, 12:00, 18:00, 24:00）
   schedule:
-    - cron: '0 */6 * * *'  # 00:00, 06:00, 12:00, 18:00 UTC
-  
+    - cron: '0 21 * * *'  # JST 06:00 (UTC 21:00)
+    - cron: '0 3 * * *'   # JST 12:00 (UTC 03:00)
+    - cron: '0 9 * * *'   # JST 18:00 (UTC 09:00)
+    - cron: '0 15 * * *'  # JST 24:00 (UTC 15:00)
+
   # 手動実行も可能にする
   workflow_dispatch:
     inputs:
       force_full_update:
         description: 'Force full data refresh (ignore cache)'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
-# 同時実行を防ぐ（データ更新の競合を避ける）
+# 同時実行をキャンセルして、常に最新の1つだけが実行されるようにする
 concurrency:
-  group: data-update
-  cancel-in-progress: false
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # 6時間のタイムアウト設定
-    
+    timeout-minutes: 60
+    permissions:
+      contents: write # git push と gh-pages へのデプロイに必要
+
     steps:
-      # Phase 1: 環境準備
+      # 1. 環境準備
       - name: 📂 Checkout repository
         uses: actions/checkout@v4
         with:
-          # 既存のcache.jsonを保持するためにfetch-depth: 0
+          # cache.jsonをコミットするためにリポジトリの全履歴を取得
           fetch-depth: 0
-
-      - name: 📊 Debug - Repository state check
-        run: |
-          echo "=== Repository State ==="
-          pwd
-          ls -la
-          echo "=== .git directory check ==="
-          ls -la .git/ || echo "No .git directory found"
-          echo "=== data directory check ==="
-          ls -la data/ || echo "No data directory found"
 
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
@@ -49,169 +44,110 @@ jobs:
           cache: 'npm'
 
       - name: 📦 Install dependencies
-        run: |
-          echo "=== Installing dependencies ==="
-          npm ci
-          echo "=== Dependency installation completed ==="
+        run: npm ci
 
-      # Phase 2: 既存キャッシュのバックアップ
-      - name: 💾 Backup existing cache
-        run: |
-          echo "=== Backup existing cache ==="
-          if [ -f "data/cache.json" ]; then
-            cp data/cache.json data/cache.backup.json
-            echo "✅ Existing cache backed up"
-            echo "Cache file size: $(du -h data/cache.json)"
-          else
-            echo "⚠️ No existing cache found - first run"
-          fi
-
-      # Phase 3: ビルド実行
+      # 2. ビルド実行
       - name: 🚀 Run build script
         env:
           RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
-          TARGET_REGION: jp1
-          ACCOUNT_REGION: asia
-          OUTPUT_DIR: .
-          CACHE_DIR: ./data
-          DEBUG_MODE: true
+          TARGET_REGION: 'jp1'
+          ACCOUNT_REGION: 'asia'
+          OUTPUT_DIR: '.'
+          CACHE_DIR: './data'
+          DEBUG_MODE: false
           FORCE_UPDATE: ${{ github.event.inputs.force_full_update || 'false' }}
         run: |
-          echo "=== Starting build process ==="
           echo "Build started at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-          
-          # API キーの存在確認（値は表示しない）
-          if [ -z "$RIOT_API_KEY" ]; then
-            echo "❌ ERROR: RIOT_API_KEY is not set"
-            exit 1
-          else
-            echo "✅ RIOT_API_KEY is configured"
-          fi
-          
-          # メモリ使用量監視開始
-          echo "=== System Resources ==="
-          free -h
-          df -h
-          
-          # ビルド実行
           node src/build.js --prod
-          
           echo "Build completed at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 
-      # Phase 4: ビルド結果の検証
+      # 3. ビルド結果の検証
       - name: 🔍 Verify build results
+        id: build-stats
         run: |
-          echo "=== Build Verification ==="
-          
-          # 必須ファイルの存在確認
-          required_files=("index.html" "a-z.html" "z-a.html" "manifest.json" "sw.js" "data/cache.json")
-          
-          for file in "${required_files[@]}"; do
-            if [ -f "$file" ]; then
-              size=$(du -h "$file" | cut -f1)
-              echo "✅ $file exists (size: $size)"
-            else
-              echo "❌ Missing required file: $file"
+          echo "Validating build architecture..."
+          # 必須ファイルの存在チェック
+          REQUIRED_FILES=("index.html" "sw.js" "manifest.json" "data/cache.json")
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Critical file missing: $file"
               exit 1
             fi
+            echo "✅ Found required file: $file"
           done
           
-          # HTMLファイル数確認
-          html_count=$(find . -maxdepth 1 -name "*.html" | wc -l)
-          echo "📄 Generated HTML files: $html_count"
+          # 生成ページ数カウント
+          HTML_COUNT=$(find . -maxdepth 1 -name "*.html" | wc -l)
+          echo "pages-generated=$HTML_COUNT" >> $GITHUB_OUTPUT
           
-          # 画像ディレクトリ確認
-          if [ -d "images" ]; then
-            image_count=$(find images -name "*.jpg" -o -name "*.png" | wc -l)
-            echo "🖼️ Downloaded images: $image_count"
-          fi
+          # 画像数カウント
+          IMAGE_COUNT=$(find images -type f 2>/dev/null | wc -l || echo 0)
+          echo "images-downloaded=$IMAGE_COUNT" >> $GITHUB_OUTPUT
           
-          # キャッシュファイルの詳細
-          if [ -f "data/cache.json" ]; then
-            echo "=== Cache File Analysis ==="
-            echo "Cache size: $(du -h data/cache.json)"
-            echo "Cache line count: $(wc -l < data/cache.json)"
-            
-            # JSONの妥当性確認
-            if node -e "JSON.parse(require('fs').readFileSync('data/cache.json', 'utf8')); console.log('✅ Cache JSON is valid')"; then
-              echo "✅ Cache file is valid JSON"
-            else
-              echo "❌ Cache file is invalid JSON"
-              exit 1
-            fi
+          echo "📊 Build statistics:"
+          echo "  - HTML Pages: $HTML_COUNT"
+          echo "  - Images: $IMAGE_COUNT"
+
+      # 4. cache.jsonの変更をコミット
+      - name: 💾 Commit updated cache.json
+        id: commit-cache
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # 変更があるか確認
+          if ! git diff --quiet data/cache.json; then
+            echo "✅ cache.json has been updated. Committing changes..."
+            git add data/cache.json
+            git commit -m "🤖 Auto-update: Refresh cache.json" -m "Triggered by: ${{ github.event_name }}"
+            git push
+            echo "commit-pushed=true" >> $GITHUB_OUTPUT
+          else
+            echo "ℹ️ No changes detected in cache.json. Skipping commit."
+            echo "commit-pushed=false" >> $GITHUB_OUTPUT
           fi
 
-      # Phase 5: GitHub Pages デプロイ
+      # 5. GitHub Pages へデプロイ
       - name: 🚀 Deploy to GitHub Pages
+        if: steps.commit-cache.outputs.commit-pushed == 'true'
         uses: peaceiris/actions-gh-pages@v4
-        if: success()  # ビルドが成功した場合のみデプロイ
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: .
+          # デプロイに不要なファイルを除外
           exclude_assets: |
-            node_modules
-            src
-            templates
+            .github/
+            node_modules/
+            src/
+            templates/
             .env*
             package*.json
             *.md
-            data/cache.backup.json
-          force_orphan: true
+          force_orphan: true # 常にクリーンな状態でデプロイ
           enable_jekyll: false
           commit_message: |
-            🤖 Auto-update: League of Legends counter data
+            🤖 Deploy: Update site content
             
-            Updated at: ${{ steps.get-time.outputs.time }}
+            Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
             Triggered by: ${{ github.event_name }}
-            🔄 Data refresh completed successfully
+            Pages Generated: ${{ steps.build-stats.outputs.pages-generated }}
+            Images: ${{ steps.build-stats.outputs.images-downloaded }}
 
-      # Phase 6: デプロイ後の通知とクリーンアップ
-      - name: 📝 Generate deployment summary
+      # 6. 完了通知
+      - name: ✅ Post-run summary
         if: always()
         run: |
-          echo "=== Deployment Summary ==="
-          echo "Workflow: ${{ github.workflow }}"
-          echo "Run ID: ${{ github.run_id }}"
-          echo "Triggered by: ${{ github.event_name }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "### Workflow Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | **${{ job.status }}** |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Trigger | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Pages Generated | ${{ steps.build-stats.outputs.pages-generated }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Images Downloaded | ${{ steps.build-stats.outputs.images-downloaded }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cache Updated | ${{ steps.commit-cache.outputs.commit-pushed }} |" >> $GITHUB_STEP_SUMMARY
           
           if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Deployment completed successfully"
-            echo "🌐 Site will be available at: https://${{ github.repository_owner }}.github.io/FastestLOLCounterFinder"
+            echo "🎉 Deployment completed successfully!" >> $GITHUB_STEP_SUMMARY
+            echo "🌐 Site is live at: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Deployment failed"
-            echo "Please check the logs above for error details"
-          fi
-          
-          # リソース使用量の最終確認
-          echo "=== Final System Resources ==="
-          free -h
-          df -h
-
-      # Phase 7: エラー時のデバッグ情報出力
-      - name: 🔧 Debug information on failure
-        if: failure()
-        run: |
-          echo "=== DEBUG INFORMATION ==="
-          echo "Working directory contents:"
-          ls -la
-          
-          echo "=== data directory contents ==="
-          ls -la data/ || echo "No data directory"
-          
-          echo "=== Logs from last 50 lines ==="
-          tail -50 /tmp/* 2>/dev/null || echo "No log files found"
-          
-          echo "=== Environment variables (masked) ==="
-          env | grep -E "(NODE|NPM|GITHUB)" | head -20
-          
-          echo "=== Process information ==="
-          ps aux | head -20
-          
-          # バックアップから復旧を試行
-          if [ -f "data/cache.backup.json" ]; then
-            echo "=== Attempting cache recovery ==="
-            cp data/cache.backup.json data/cache.json
-            echo "✅ Cache restored from backup"
+            echo "❌ Deployment failed. Please check the logs for details." >> $GITHUB_STEP_SUMMARY
           fi
