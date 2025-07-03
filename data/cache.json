@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "fetchTime": "2025-07-03T03:23:13.334Z",
+    "fetchTime": "2025-07-03T03:53:10.206Z",
     "version": "15.13.1",
     "region": "jp1",
     "patchVersion": "15.13.1",
@@ -117771,7 +117771,7 @@
   "processedCounters": {},
   "errors": [
     {
-      "timestamp": "2025-07-03T03:25:54.795Z",
+      "timestamp": "2025-07-03T03:55:56.986Z",
       "error": "Failed to fetch high ELO players - API authentication or network issue",
       "stack": "Error: Failed to fetch high ELO players - API authentication or network issue\n    at ApiClient.fetchAllData (file:///home/runner/work/FastestLOLCounterFinder/FastestLOLCounterFinder/src/api-client.js:200:17)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async executeBuildProcess (file:///home/runner/work/FastestLOLCounterFinder/FastestLOLCounterFinder/src/build.js:140:18)\n    at async main (file:///home/runner/work/FastestLOLCounterFinder/FastestLOLCounterFinder/src/build.js:232:5)"
     }
