@@ -88,22 +88,22 @@ jobs:
           echo "  - HTML Pages: $HTML_COUNT"
           echo "  - Images: $IMAGE_COUNT"
 
-      # 4. cache.jsonの変更をコミット
-      - name: 💾 Commit updated cache.json
+      # 4. cache.jsonとHTMLファイルの変更をコミット
+      - name: 💾 Commit updated cache.json and HTML files
         id: commit-cache
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
-          # 変更があるか確認
-          if ! git diff --quiet data/cache.json; then
-            echo "✅ cache.json has been updated. Committing changes..."
-            git add data/cache.json
-            git commit -m "🤖 Auto-update: Refresh cache.json" -m "Triggered by: ${{ github.event_name }}"
+          # 変更があるか確認（cache.jsonまたはHTMLファイル）
+          if ! git diff --quiet data/cache.json || ! git diff --quiet -- '*.html' 'images/' 'manifest.json' 'sw.js'; then
+            echo "✅ Files have been updated. Committing changes..."
+            git add data/cache.json *.html images/ manifest.json sw.js
+            git commit -m "🤖 Auto-update: Refresh data and static files" -m "Triggered by: ${{ github.event_name }}"
             git push
             echo "commit-pushed=true" >> $GITHUB_OUTPUT
           else
-            echo "ℹ️ No changes detected in cache.json. Skipping commit."
+            echo "ℹ️ No changes detected in tracked files. Skipping commit."
             echo "commit-pushed=false" >> $GITHUB_OUTPUT
           fi
 
