@@ -1,12 +1,12 @@
 /**
  * FastestLOLCounterFinder Service Worker
  * Cache First Strategy for Maximum Performance
- * Auto-generated on 2025-07-03T09:13:28.707Z
- * Version: 1751534008681
+ * Auto-generated on 2025-07-03T15:13:15.838Z
+ * Version: 1751555595811
  */
 
-const CACHE_NAME = 'fastest-lol-counter-v1751534008681';
-const CACHE_VERSION = '1751534008681';
+const CACHE_NAME = 'fastest-lol-counter-v1751555595811';
+const CACHE_VERSION = '1751555595811';
 
 // キャッシュ対象ファイル一覧
 const FILES_TO_CACHE = [
